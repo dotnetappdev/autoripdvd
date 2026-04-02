@@ -39,5 +39,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoRipDVD.MetadataSources\AutoRipDVD.MetadataSources.csproj" />
+    <ProjectReference Include="..\AutoRipDVD.Database\AutoRipDVD.Database.csproj" />
   </ItemGroup>
 </Project>

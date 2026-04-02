@@ -7,218 +7,249 @@
     mc:Ignorable="d">
 
     <ScrollViewer>
-        <StackPanel Padding="24" Spacing="24" MaxWidth="800">
+        <StackPanel Padding="24" Spacing="24" MaxWidth="860">
+
             <!-- Header -->
             <StackPanel>
                 <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}"/>
-                <TextBlock Text="Configure AutoRip DVD" 
-                           Style="{StaticResource BodyTextBlockStyle}" 
+                <TextBlock Text="Configure AutoRip DVD / Blu-ray"
+                           Style="{StaticResource BodyTextBlockStyle}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Margin="0,4,0,0"/>
             </StackPanel>
-            
+
             <!-- Unsaved Changes Warning -->
-            <InfoBar
-                Title="Unsaved Changes"
-                Message="You have unsaved changes. Click Apply to save or Cancel to discard."
-                Severity="Warning"
-                IsOpen="{x:Bind ViewModel.HasChanges, Mode=OneWay}"
-                IsClosable="False"/>
+            <InfoBar Title="Unsaved Changes"
+                     Message="Click Apply to save or Cancel to discard."
+                     Severity="Warning"
+                     IsOpen="{x:Bind ViewModel.HasChanges, Mode=OneWay}"
+                     IsClosable="False"/>
 
-            <!-- Paths Section -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="Paths" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <StackPanel Spacing="8">
-                    <TextBlock Text="MakeMKV Executable" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <TextBox Text="{x:Bind ViewModel.MakeMkvPath, Mode=TwoWay}" PlaceholderText="Path to makemkvcon64.exe"/>
+            <!-- ══ Paths ══════════════════════════════════════════════════════ -->
+            <Expander Header="Paths" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="MakeMKV Executable (makemkvcon64.exe)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.MakeMkvPath, Mode=TwoWay}"
+                                 PlaceholderText="C:\Program Files (x86)\MakeMKV\makemkvcon64.exe"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="HandBrake CLI Executable (HandBrakeCLI.exe)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.HandBrakePath, Mode=TwoWay}"
+                                 PlaceholderText="C:\Program Files\HandBrake\HandBrakeCLI.exe"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Output Folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.OutputBasePath, Mode=TwoWay}"
+                                 PlaceholderText="D:\Media"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Temporary Folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.TempPath, Mode=TwoWay}"
+                                 PlaceholderText="%TEMP%\AutoRipDVD"/>
+                    </StackPanel>
                 </StackPanel>
+            </Expander>
 
-                <StackPanel Spacing="8">
-                    <TextBlock Text="HandBrake Executable" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <TextBox Text="{x:Bind ViewModel.HandBrakePath, Mode=TwoWay}" PlaceholderText="Path to HandBrakeCLI.exe"/>
+            <!-- ══ API Keys ═══════════════════════════════════════════════════ -->
+            <Expander Header="Metadata API Keys" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+                    <InfoBar Title="Priority Order"
+                             Message="OMDb is tried first, then TMDB, then TVDB as fallback."
+                             Severity="Informational" IsOpen="True" IsClosable="False"/>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="OMDb API Key (movies &amp; TV — primary)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <PasswordBox Password="{x:Bind ViewModel.OmdbApiKey, Mode=TwoWay}"
+                                     PlaceholderText="Enter OMDb API Key"/>
+                        <HyperlinkButton Content="Get a free key at omdbapi.com" NavigateUri="https://www.omdbapi.com/apikey.aspx"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="TMDB API Key (fallback for movies &amp; TV)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <PasswordBox Password="{x:Bind ViewModel.TmdbApiKey, Mode=TwoWay}"
+                                     PlaceholderText="Enter TMDB API Key"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="TVDB API Key (TV show fallback)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <PasswordBox Password="{x:Bind ViewModel.TvdbApiKey, Mode=TwoWay}"
+                                     PlaceholderText="Enter TVDB API Key"/>
+                    </StackPanel>
                 </StackPanel>
+            </Expander>
 
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Output Folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <TextBox Text="{x:Bind ViewModel.OutputBasePath, Mode=TwoWay}" PlaceholderText="Folder for ripped media"/>
+            <!-- ══ Ripping Options ════════════════════════════════════════════ -->
+            <Expander Header="Ripping Options" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+                    <ToggleSwitch Header="Auto-Rip on Disc Insert (ARM-style)"
+                                  IsOn="{x:Bind ViewModel.AutoRip, Mode=TwoWay}"
+                                  OnContent="Enabled" OffContent="Disabled"/>
+
+                    <ToggleSwitch Header="Rip Main Feature Only (skip extras)"
+                                  IsOn="{x:Bind ViewModel.RipMainFeatureOnly, Mode=TwoWay}"
+                                  OnContent="Yes" OffContent="No"/>
+
+                    <ToggleSwitch Header="Eject Disc When Complete"
+                                  IsOn="{x:Bind ViewModel.EjectWhenComplete, Mode=TwoWay}"
+                                  OnContent="Yes" OffContent="No"/>
+
+                    <ToggleSwitch Header="Transcode After Rip (HandBrake)"
+                                  IsOn="{x:Bind ViewModel.AutoTranscode, Mode=TwoWay}"
+                                  OnContent="Yes" OffContent="No"/>
+
+                    <ToggleSwitch Header="Auto-Match Metadata"
+                                  IsOn="{x:Bind ViewModel.AutoMatchMetadata, Mode=TwoWay}"
+                                  OnContent="Yes" OffContent="No"/>
+
+                    <ToggleSwitch Header="Plex Folder Structure (Movies / TV Shows)"
+                                  IsOn="{x:Bind ViewModel.CreatePlexFolderStructure, Mode=TwoWay}"
+                                  OnContent="Yes" OffContent="No"/>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Minimum Title Length (seconds)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <NumberBox Value="{x:Bind ViewModel.MinimumTitleLengthSeconds, Mode=TwoWay}"
+                                   Minimum="0" Maximum="7200" SpinButtonPlacementMode="Inline"/>
+                        <TextBlock Text="Titles shorter than this are skipped. Recommended: 120 (2 min)"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Expander>
 
-            <!-- API Keys Section -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="API Keys" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <StackPanel Spacing="8">
-                    <TextBlock Text="OMDb API Key" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <PasswordBox Password="{x:Bind ViewModel.OmdbApiKey, Mode=TwoWay}" PlaceholderText="Enter OMDb API Key"/>
-                    <HyperlinkButton Content="Get an API key at omdbapi.com" NavigateUri="https://www.omdbapi.com/apikey.aspx"/>
+            <!-- ══ MakeMKV Options ════════════════════════════════════════════ -->
+            <Expander Header="MakeMKV Options" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Quality Preset" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.MakeMKVQualityOptions}"
+                                  SelectedItem="{x:Bind ViewModel.MakeMKVQuality, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <ToggleSwitch Header="Preserve DTS Audio" IsOn="{x:Bind ViewModel.PreserveDTS, Mode=TwoWay}"/>
+                    <ToggleSwitch Header="Preserve TrueHD Audio" IsOn="{x:Bind ViewModel.PreserveTrueHD, Mode=TwoWay}"/>
+                    <ToggleSwitch Header="Include All Audio Tracks" IsOn="{x:Bind ViewModel.IncludeAllAudioTracks, Mode=TwoWay}"/>
+                    <ToggleSwitch Header="Include All Subtitles" IsOn="{x:Bind ViewModel.IncludeAllSubtitles, Mode=TwoWay}"/>
                 </StackPanel>
+            </Expander>
 
-                <StackPanel Spacing="8">
-                    <TextBlock Text="TVDB API Key" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <PasswordBox Password="{x:Bind ViewModel.TvdbApiKey, Mode=TwoWay}" PlaceholderText="Enter TVDB API Key"/>
+            <!-- ══ HandBrake Settings ══════════════════════════════════════════ -->
+            <Expander Header="HandBrake / Encoding Settings" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Preset" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.AvailablePresets, Mode=OneWay}"
+                                  SelectedItem="{x:Bind ViewModel.HandBrakePreset, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Video Encoder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.VideoEncoderOptions}"
+                                  SelectedItem="{x:Bind ViewModel.VideoEncoder, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}">
+                            <Run Text="Video Quality (RF): "/>
+                            <Run Text="{x:Bind ViewModel.Quality, Mode=OneWay}"/>
+                        </TextBlock>
+                        <Slider Value="{x:Bind ViewModel.Quality, Mode=TwoWay}"
+                                Minimum="16" Maximum="30" TickFrequency="1" TickPlacement="BottomRight"/>
+                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12">
+                            <Run Text="16 = Highest quality (large file)  ·  22 = Balanced  ·  28+ = Smaller file"/>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="x264 / x265 Speed Preset" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.x264PresetOptions}"
+                                  SelectedItem="{x:Bind ViewModel.X264Preset, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="x264 Tune" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.x264TuneOptions}"
+                                  SelectedItem="{x:Bind ViewModel.X264Tune, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Audio Encoder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <ComboBox ItemsSource="{x:Bind ViewModel.AudioEncoderOptions}"
+                                  SelectedItem="{x:Bind ViewModel.AudioEncoder, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Audio Bitrate (kbps)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <NumberBox Value="{x:Bind ViewModel.AudioBitrate, Mode=TwoWay}"
+                                   Minimum="64" Maximum="640"
+                                   SmallChange="32" LargeChange="64"
+                                   SpinButtonPlacementMode="Inline"/>
+                    </StackPanel>
+
+                    <ToggleSwitch Header="Two-Pass Encoding (slower, better quality)"
+                                  IsOn="{x:Bind ViewModel.EnableTwoPassEncoding, Mode=TwoWay}"/>
+                    <ToggleSwitch Header="Hardware Acceleration (NVENC / QuickSync / VCE)"
+                                  IsOn="{x:Bind ViewModel.UseHardwareAcceleration, Mode=TwoWay}"/>
+
+                    <TextBlock Text="Filters" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    <ToggleSwitch Header="Deinterlace (for interlaced DVD sources)"
+                                  IsOn="{x:Bind ViewModel.EnableDeinterlacing, Mode=TwoWay}"/>
+                    <ToggleSwitch Header="Denoise"
+                                  IsOn="{x:Bind ViewModel.EnableDenoise, Mode=TwoWay}"/>
                 </StackPanel>
-            </StackPanel>
+            </Expander>
 
-            <!-- Ripping Options -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="Ripping Options" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <ToggleSwitch Header="Auto Rip on Insert" 
-                              IsOn="{x:Bind ViewModel.AutoRip, Mode=TwoWay}"
-                              OnContent="Enabled" 
-                              OffContent="Disabled"/>
+            <!-- ══ Notifications ══════════════════════════════════════════════ -->
+            <Expander Header="Notifications" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+                    <ToggleSwitch Header="Enable Notifications"
+                                  IsOn="{x:Bind ViewModel.EnableNotifications, Mode=TwoWay}"
+                                  OnContent="Enabled" OffContent="Disabled"/>
 
-                <ToggleSwitch Header="Rip Main Feature Only" 
-                              IsOn="{x:Bind ViewModel.RipMainFeatureOnly, Mode=TwoWay}"
-                              OnContent="Yes" 
-                              OffContent="No"/>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Webhook URL (Slack / generic)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.NotificationWebhook, Mode=TwoWay}"
+                                 PlaceholderText="https://hooks.slack.com/..."/>
+                    </StackPanel>
 
-                <ToggleSwitch Header="Eject When Complete" 
-                              IsOn="{x:Bind ViewModel.EjectWhenComplete, Mode=TwoWay}"
-                              OnContent="Yes" 
-                              OffContent="No"/>
-
-                <ToggleSwitch Header="Auto Transcode" 
-                              IsOn="{x:Bind ViewModel.AutoTranscode, Mode=TwoWay}"
-                              OnContent="Yes" 
-                              OffContent="No"/>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Minimum Title Length (seconds)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <NumberBox Value="{x:Bind ViewModel.MinimumTitleLengthSeconds, Mode=TwoWay}" 
-                               Minimum="0" 
-                               Maximum="7200"
-                               SpinButtonPlacementMode="Inline"/>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Discord Webhook URL" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.DiscordWebhook, Mode=TwoWay}"
+                                 PlaceholderText="https://discord.com/api/webhooks/..."/>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Expander>
 
-            <!-- MakeMKV Quality -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="MakeMKV Quality Settings" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Quality Preset" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <ComboBox SelectedItem="{x:Bind ViewModel.MakeMKVQuality, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="Original (Full Quality)"/>
-                        <ComboBoxItem Content="High"/>
-                        <ComboBoxItem Content="Medium"/>
-                        <ComboBoxItem Content="Low"/>
-                    </ComboBox>
+            <!-- ══ Appearance ══════════════════════════════════════════════════ -->
+            <Expander Header="Appearance" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Padding="0,12,0,0">
+                    <RadioButtons Header="Theme" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}">
+                        <RadioButton Content="System Default" Tag="Default"/>
+                        <RadioButton Content="Light" Tag="Light"/>
+                        <RadioButton Content="Dark" Tag="Dark"/>
+                    </RadioButtons>
                 </StackPanel>
+            </Expander>
 
-                <ToggleSwitch Header="Preserve DTS Audio" 
-                              IsOn="{x:Bind ViewModel.PreserveDTS, Mode=TwoWay}"/>
-
-                <ToggleSwitch Header="Preserve TrueHD Audio" 
-                              IsOn="{x:Bind ViewModel.PreserveTrueHD, Mode=TwoWay}"/>
-
-                <ToggleSwitch Header="Include All Audio Tracks" 
-                              IsOn="{x:Bind ViewModel.IncludeAllAudioTracks, Mode=TwoWay}"/>
-
-                <ToggleSwitch Header="Include All Subtitles" 
-                              IsOn="{x:Bind ViewModel.IncludeAllSubtitles, Mode=TwoWay}"/>
-            </StackPanel>
-
-            <!-- HandBrake Settings -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="HandBrake Settings" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Preset" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <ComboBox ItemsSource="{x:Bind ViewModel.AvailablePresets, Mode=OneWay}"
-                              SelectedItem="{x:Bind ViewModel.HandBrakePreset, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch"/>
-                </StackPanel>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Video Encoder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <ComboBox SelectedItem="{x:Bind ViewModel.VideoEncoder, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="x264 (H.264)"/>
-                        <ComboBoxItem Content="x265 (H.265/HEVC)"/>
-                        <ComboBoxItem Content="VP9"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}">
-                        <Run Text="Video Quality (RF - Lower is better): "/>
-                        <Run Text="{x:Bind ViewModel.Quality, Mode=OneWay}"/>
-                    </TextBlock>
-                    <Slider Value="{x:Bind ViewModel.Quality, Mode=TwoWay}" 
-                            Minimum="18" 
-                            Maximum="28" 
-                            TickFrequency="1"
-                            TickPlacement="BottomRight"/>
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12">
-                        <Run Text="18 = Highest Quality (Larger file) • "/>
-                        <Run Text="22 = Balanced • "/>
-                        <Run Text="28 = Lower Quality (Smaller file)"/>
-                    </TextBlock>
-                </StackPanel>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Audio Encoder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <ComboBox SelectedItem="{x:Bind ViewModel.AudioEncoder, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="AAC"/>
-                        <ComboBoxItem Content="AC3"/>
-                        <ComboBoxItem Content="MP3"/>
-                        <ComboBoxItem Content="Opus"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Audio Bitrate (kbps)" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <NumberBox Value="{x:Bind ViewModel.AudioBitrate, Mode=TwoWay}"
-                               Minimum="64"
-                               Maximum="320"
-                               SmallChange="32"
-                               LargeChange="64"
-                               SpinButtonPlacementMode="Inline"/>
-                </StackPanel>
-            </StackPanel>
-
-            <!-- Notifications -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="Notifications" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <ToggleSwitch Header="Enable Notifications" 
-                              IsOn="{x:Bind ViewModel.EnableNotifications, Mode=TwoWay}"
-                              OnContent="Enabled" 
-                              OffContent="Disabled"/>
-
-                <StackPanel Spacing="8">
-                    <TextBlock Text="Webhook URL" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                    <TextBox Text="{x:Bind ViewModel.NotificationWebhook, Mode=TwoWay}" 
-                             PlaceholderText="https://hooks.slack.com/..."/>
-                </StackPanel>
-            </StackPanel>
-
-            <!-- Theme -->
-            <StackPanel Spacing="16">
-                <TextBlock Text="Appearance" Style="{StaticResource SubtitleTextBlockStyle}"/>
-                
-                <RadioButtons Header="Theme" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}">
-                    <RadioButton Content="System Default" Tag="Default"/>
-                    <RadioButton Content="Light" Tag="Light"/>
-                    <RadioButton Content="Dark" Tag="Dark"/>
-                </RadioButtons>
-            </StackPanel>
-
-            <!-- Action Buttons -->
-            <Grid ColumnSpacing="8" Margin="0,16,0,0">
+            <!-- ══ Action Buttons ══════════════════════════════════════════════ -->
+            <Grid ColumnSpacing="8" Margin="0,8,0,32">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <Button Grid.Column="0"
-                        Content="Apply" 
+                        Content="Apply"
                         Command="{x:Bind ViewModel.ApplyCommand}"
                         Style="{StaticResource AccentButtonStyle}"
                         IsEnabled="{x:Bind ViewModel.HasChanges, Mode=OneWay}"
@@ -227,20 +258,21 @@
                         <KeyboardAccelerator Modifiers="Control" Key="S"/>
                     </Button.KeyboardAccelerators>
                 </Button>
-                
+
                 <Button Grid.Column="1"
                         Content="Cancel"
                         Command="{x:Bind ViewModel.CancelCommand}"
                         IsEnabled="{x:Bind ViewModel.HasChanges, Mode=OneWay}"
                         MinWidth="120"/>
-                        
+
                 <TextBlock Grid.Column="2"
-                           Text="Tip: Press Ctrl+S to quickly save changes"
+                           Text="Ctrl+S to save quickly"
                            VerticalAlignment="Center"
                            Margin="16,0,0,0"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Style="{StaticResource CaptionTextBlockStyle}"/>
             </Grid>
+
         </StackPanel>
     </ScrollViewer>
 </Page>
