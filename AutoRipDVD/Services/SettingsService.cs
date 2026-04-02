@@ -114,6 +114,21 @@ public class SettingsService : ISettingsService
             s.SlackWebhook        = Get("SlackWebhook",            string.Empty);
             s.DiscordWebhook      = Get("DiscordWebhook",          string.Empty);
 
+            // Sound
+            s.EnableSounds           = GetBool("EnableSounds",           true);
+            s.PlaySoundOnCompletion  = GetBool("PlaySoundOnCompletion",  true);
+            s.PlaySoundOnEjection    = GetBool("PlaySoundOnEjection",    true);
+            s.PlaySoundOnError       = GetBool("PlaySoundOnError",       true);
+            s.PlaySoundOnRipStart    = GetBool("PlaySoundOnRipStart",    false);
+            s.CompletionSoundAlias   = Get("CompletionSoundAlias",   "SystemAsterisk");
+            s.EjectionSoundAlias     = Get("EjectionSoundAlias",     "SystemNotification");
+            s.ErrorSoundAlias        = Get("ErrorSoundAlias",        "SystemHand");
+            s.RipStartSoundAlias     = Get("RipStartSoundAlias",     "SystemExclamation");
+            s.CompletionSoundPath    = Get("CompletionSoundPath",    string.Empty);
+            s.EjectionSoundPath      = Get("EjectionSoundPath",      string.Empty);
+            s.ErrorSoundPath         = Get("ErrorSoundPath",         string.Empty);
+            s.RipStartSoundPath      = Get("RipStartSoundPath",      string.Empty);
+
             // UI
             s.Theme             = Get("Theme",             "System");
             s.ShowAdvancedOptions = GetBool("ShowAdvancedOptions", false);
@@ -206,6 +221,21 @@ public class SettingsService : ISettingsService
             ["NotifyOnError"]       = s.NotifyOnError.ToString(),
             ["SlackWebhook"]        = s.SlackWebhook,
             ["DiscordWebhook"]      = s.DiscordWebhook,
+
+            // Sound
+            ["EnableSounds"]          = s.EnableSounds.ToString(),
+            ["PlaySoundOnCompletion"] = s.PlaySoundOnCompletion.ToString(),
+            ["PlaySoundOnEjection"]   = s.PlaySoundOnEjection.ToString(),
+            ["PlaySoundOnError"]      = s.PlaySoundOnError.ToString(),
+            ["PlaySoundOnRipStart"]   = s.PlaySoundOnRipStart.ToString(),
+            ["CompletionSoundAlias"]  = s.CompletionSoundAlias,
+            ["EjectionSoundAlias"]    = s.EjectionSoundAlias,
+            ["ErrorSoundAlias"]       = s.ErrorSoundAlias,
+            ["RipStartSoundAlias"]    = s.RipStartSoundAlias,
+            ["CompletionSoundPath"]   = s.CompletionSoundPath,
+            ["EjectionSoundPath"]     = s.EjectionSoundPath,
+            ["ErrorSoundPath"]        = s.ErrorSoundPath,
+            ["RipStartSoundPath"]     = s.RipStartSoundPath,
 
             // UI
             ["Theme"]               = s.Theme,

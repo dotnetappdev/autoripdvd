@@ -124,6 +124,47 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
     private string _discordWebhook = string.Empty;
 
+    // ── Sound ─────────────────────────────────────────────────────────────────
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private bool _enableSounds = true;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private bool _playSoundOnCompletion = true;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private bool _playSoundOnEjection = true;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private bool _playSoundOnError = true;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private bool _playSoundOnRipStart;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _completionSoundAlias = "SystemAsterisk";
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _ejectionSoundAlias = "SystemNotification";
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _errorSoundAlias = "SystemHand";
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _ripStartSoundAlias = "SystemExclamation";
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _completionSoundPath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _ejectionSoundPath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _errorSoundPath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _ripStartSoundPath = string.Empty;
+
     // ── Appearance ────────────────────────────────────────────────────────────
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
@@ -163,6 +204,8 @@ public partial class SettingsViewModel : ObservableObject
         "none", "film", "animation", "grain", "stillimage", "fastdecode"
     };
 
+    public IReadOnlyList<string> SoundAliasOptions => SoundService.SystemSoundAliases;
+
     // ── Change detection ──────────────────────────────────────────────────────
 
     public bool HasChanges =>
@@ -199,16 +242,45 @@ public partial class SettingsViewModel : ObservableObject
         EnableNotifications != _originalSettings.EnableNotifications ||
         NotificationWebhook != _originalSettings.NotificationWebhook ||
         DiscordWebhook != _originalSettings.DiscordWebhook ||
+        EnableSounds != _originalSettings.EnableSounds ||
+        PlaySoundOnCompletion != _originalSettings.PlaySoundOnCompletion ||
+        PlaySoundOnEjection != _originalSettings.PlaySoundOnEjection ||
+        PlaySoundOnError != _originalSettings.PlaySoundOnError ||
+        PlaySoundOnRipStart != _originalSettings.PlaySoundOnRipStart ||
+        CompletionSoundAlias != _originalSettings.CompletionSoundAlias ||
+        EjectionSoundAlias != _originalSettings.EjectionSoundAlias ||
+        ErrorSoundAlias != _originalSettings.ErrorSoundAlias ||
+        RipStartSoundAlias != _originalSettings.RipStartSoundAlias ||
+        CompletionSoundPath != _originalSettings.CompletionSoundPath ||
+        EjectionSoundPath != _originalSettings.EjectionSoundPath ||
+        ErrorSoundPath != _originalSettings.ErrorSoundPath ||
+        RipStartSoundPath != _originalSettings.RipStartSoundPath ||
         GetThemeString() != _originalSettings.Theme;
 
     // ── Constructor ───────────────────────────────────────────────────────────
 
-    public SettingsViewModel(ISettingsService settingsService, IHandBrakeService handBrakeService)
+    private readonly ISoundService _soundService;
+
+    public SettingsViewModel(ISettingsService settingsService, IHandBrakeService handBrakeService, ISoundService soundService)
     {
         _settingsService = settingsService;
         _handBrakeService = handBrakeService;
+        _soundService = soundService;
         LoadSettings();
         _ = LoadPresetsAsync();
+    }
+
+    /// <summary>Preview a sound alias/path immediately from the settings UI.</summary>
+    [RelayCommand]
+    private void PreviewSound(string? parameter)
+    {
+        // parameter format: "alias|path" — the currently selected alias and optional custom path
+        if (string.IsNullOrEmpty(parameter)) return;
+        var parts = parameter.Split('|');
+        var alias = parts.Length > 0 ? parts[0] : string.Empty;
+        var path  = parts.Length > 1 ? parts[1] : string.Empty;
+        if (_soundService is SoundService ss)
+            ss.Preview(path, alias);
     }
 
     // ── Load / Save ───────────────────────────────────────────────────────────
@@ -251,6 +323,19 @@ public partial class SettingsViewModel : ObservableObject
         EnableNotifications    = s.EnableNotifications;
         NotificationWebhook    = s.NotificationWebhook;
         DiscordWebhook         = s.DiscordWebhook;
+        EnableSounds           = s.EnableSounds;
+        PlaySoundOnCompletion  = s.PlaySoundOnCompletion;
+        PlaySoundOnEjection    = s.PlaySoundOnEjection;
+        PlaySoundOnError       = s.PlaySoundOnError;
+        PlaySoundOnRipStart    = s.PlaySoundOnRipStart;
+        CompletionSoundAlias   = s.CompletionSoundAlias;
+        EjectionSoundAlias     = s.EjectionSoundAlias;
+        ErrorSoundAlias        = s.ErrorSoundAlias;
+        RipStartSoundAlias     = s.RipStartSoundAlias;
+        CompletionSoundPath    = s.CompletionSoundPath;
+        EjectionSoundPath      = s.EjectionSoundPath;
+        ErrorSoundPath         = s.ErrorSoundPath;
+        RipStartSoundPath      = s.RipStartSoundPath;
         SelectedTheme          = s.Theme switch
         {
             "Light" => ElementTheme.Light,
@@ -303,6 +388,19 @@ public partial class SettingsViewModel : ObservableObject
         s.EnableNotifications     = EnableNotifications;
         s.NotificationWebhook     = NotificationWebhook;
         s.DiscordWebhook          = DiscordWebhook;
+        s.EnableSounds            = EnableSounds;
+        s.PlaySoundOnCompletion   = PlaySoundOnCompletion;
+        s.PlaySoundOnEjection     = PlaySoundOnEjection;
+        s.PlaySoundOnError        = PlaySoundOnError;
+        s.PlaySoundOnRipStart     = PlaySoundOnRipStart;
+        s.CompletionSoundAlias    = CompletionSoundAlias;
+        s.EjectionSoundAlias      = EjectionSoundAlias;
+        s.ErrorSoundAlias         = ErrorSoundAlias;
+        s.RipStartSoundAlias      = RipStartSoundAlias;
+        s.CompletionSoundPath     = CompletionSoundPath;
+        s.EjectionSoundPath       = EjectionSoundPath;
+        s.ErrorSoundPath          = ErrorSoundPath;
+        s.RipStartSoundPath       = RipStartSoundPath;
         s.Theme                   = GetThemeString();
 
         await _settingsService.SaveSettingsAsync();
@@ -377,6 +475,19 @@ public partial class SettingsViewModel : ObservableObject
         EnableNotifications     = s.EnableNotifications,
         NotificationWebhook     = s.NotificationWebhook,
         DiscordWebhook          = s.DiscordWebhook,
+        EnableSounds            = s.EnableSounds,
+        PlaySoundOnCompletion   = s.PlaySoundOnCompletion,
+        PlaySoundOnEjection     = s.PlaySoundOnEjection,
+        PlaySoundOnError        = s.PlaySoundOnError,
+        PlaySoundOnRipStart     = s.PlaySoundOnRipStart,
+        CompletionSoundAlias    = s.CompletionSoundAlias,
+        EjectionSoundAlias      = s.EjectionSoundAlias,
+        ErrorSoundAlias         = s.ErrorSoundAlias,
+        RipStartSoundAlias      = s.RipStartSoundAlias,
+        CompletionSoundPath     = s.CompletionSoundPath,
+        EjectionSoundPath       = s.EjectionSoundPath,
+        ErrorSoundPath          = s.ErrorSoundPath,
+        RipStartSoundPath       = s.RipStartSoundPath,
         Theme                   = s.Theme
     };
 

@@ -38,6 +38,7 @@ public class RipJobQueue : IRipJobQueue
     private readonly ISettingsService _settings;
     private readonly ILogService _logService;
     private readonly INotificationService _notificationService;
+    private readonly ISoundService _soundService;
     private readonly IDatabase _database;
 
     // Auto-rip enable/disable toggle (separate from settings so we can start/stop at runtime)
@@ -57,6 +58,7 @@ public class RipJobQueue : IRipJobQueue
         ISettingsService settings,
         ILogService logService,
         INotificationService notificationService,
+        ISoundService soundService,
         IDatabase database)
     {
         _makeMkvService      = makeMkvService;
@@ -68,6 +70,7 @@ public class RipJobQueue : IRipJobQueue
         _settings            = settings;
         _logService          = logService;
         _notificationService = notificationService;
+        _soundService        = soundService;
         _database            = database;
 
         _autoRipActive = settings.Settings.AutoRip;
@@ -265,12 +268,14 @@ public class RipJobQueue : IRipJobQueue
         {
             // Rip
             await UpdateStatusAsync(job, RipStatus.Ripping, "Ripping disc...");
+            await _soundService.PlayAsync(SoundEvent.RipStarted);
             var ripProgress = new Progress<double>(p => { job.Progress = p * 0.7; _ = UpdateJobAsync(job); });
             var ripOk = await _makeMkvService.RipTitlesAsync(job.Disc.DriveLetter, job.SelectedTitleIndices, tempPath, ripProgress);
 
             if (!ripOk)
             {
                 await FailJobAsync(job, "MakeMKV rip failed");
+                await _soundService.PlayAsync(SoundEvent.RipFailed);
                 await _notificationService.SendAsync("Rip Failed", $"{job.Metadata?.Title ?? job.Disc.VolumeLabel}");
                 return;
             }
@@ -282,6 +287,7 @@ public class RipJobQueue : IRipJobQueue
             {
                 await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
                 await _logService.LogAsync($"Ejected {job.Disc.DriveLetter}");
+                await _soundService.PlayAsync(SoundEvent.DiscEjected);
             }
 
             // Transcode or move
@@ -336,6 +342,7 @@ public class RipJobQueue : IRipJobQueue
             job.CompletedAt    = DateTime.Now;
             await UpdateJobAsync(job);
             JobCompleted?.Invoke(this, job);
+            await _soundService.PlayAsync(SoundEvent.RipCompleted);
             await _notificationService.SendAsync("Rip Complete", $"✓ {job.Metadata?.Title ?? job.Disc.VolumeLabel}");
             await _logService.LogAsync($"Job {job.Id} completed → {job.OutputPath}");
         }
@@ -402,6 +409,7 @@ public class RipJobQueue : IRipJobQueue
         job.Status       = RipStatus.Failed;
         job.ErrorMessage = message;
         await UpdateJobAsync(job);
+        await _soundService.PlayAsync(SoundEvent.RipFailed);
         await _logService.LogAsync($"Job {job.Id} failed: {message}");
     }
 

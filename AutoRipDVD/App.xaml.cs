@@ -28,6 +28,7 @@ public partial class App : Application
                 services.AddSingleton<ISettingsService, SettingsService>();
                 services.AddSingleton<ILogService, LogService>();
                 services.AddSingleton<INotificationService, NotificationService>();
+                services.AddSingleton<ISoundService, SoundService>();
                 services.AddSingleton<IDiscDetectionService, DiscDetectionService>();
                 services.AddSingleton<IMakeMkvService, MakeMkvService>();
                 services.AddSingleton<IHandBrakeService, HandBrakeService>();

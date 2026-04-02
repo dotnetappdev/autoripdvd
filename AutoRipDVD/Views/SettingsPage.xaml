@@ -229,6 +229,157 @@
                 </StackPanel>
             </Expander>
 
+            <!-- ══ Sound ══════════════════════════════════════════════════════ -->
+            <Expander Header="Sound Notifications" IsExpanded="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="16" Padding="0,12,0,0">
+
+                    <ToggleSwitch Header="Enable Sound Notifications"
+                                  IsOn="{x:Bind ViewModel.EnableSounds, Mode=TwoWay}"
+                                  OnContent="Enabled" OffContent="Disabled"/>
+
+                    <!-- Completion -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Rip Completed" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.PlaySoundOnCompletion, Mode=TwoWay}" OnContent="" OffContent=""/>
+                            </Grid>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="System Sound" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{x:Bind ViewModel.SoundAliasOptions}"
+                                              SelectedItem="{x:Bind ViewModel.CompletionSoundAlias, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch"/>
+                                    <Button Grid.Column="1" Content="▶ Preview"
+                                            CommandParameter="{x:Bind GetSoundParam(ViewModel.CompletionSoundAlias, ViewModel.CompletionSoundPath), Mode=OneWay}"
+                                            Command="{x:Bind ViewModel.PreviewSoundCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Custom WAV File (optional, overrides system sound)" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBox Text="{x:Bind ViewModel.CompletionSoundPath, Mode=TwoWay}" PlaceholderText="C:\Sounds\complete.wav"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Ejection -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Disc Ejected" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.PlaySoundOnEjection, Mode=TwoWay}" OnContent="" OffContent=""/>
+                            </Grid>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="System Sound" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{x:Bind ViewModel.SoundAliasOptions}"
+                                              SelectedItem="{x:Bind ViewModel.EjectionSoundAlias, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch"/>
+                                    <Button Grid.Column="1" Content="▶ Preview"
+                                            CommandParameter="{x:Bind GetSoundParam(ViewModel.EjectionSoundAlias, ViewModel.EjectionSoundPath), Mode=OneWay}"
+                                            Command="{x:Bind ViewModel.PreviewSoundCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Custom WAV File (optional)" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBox Text="{x:Bind ViewModel.EjectionSoundPath, Mode=TwoWay}" PlaceholderText="C:\Sounds\eject.wav"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Error -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Rip Failed / Error" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.PlaySoundOnError, Mode=TwoWay}" OnContent="" OffContent=""/>
+                            </Grid>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="System Sound" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{x:Bind ViewModel.SoundAliasOptions}"
+                                              SelectedItem="{x:Bind ViewModel.ErrorSoundAlias, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch"/>
+                                    <Button Grid.Column="1" Content="▶ Preview"
+                                            CommandParameter="{x:Bind GetSoundParam(ViewModel.ErrorSoundAlias, ViewModel.ErrorSoundPath), Mode=OneWay}"
+                                            Command="{x:Bind ViewModel.PreviewSoundCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Custom WAV File (optional)" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBox Text="{x:Bind ViewModel.ErrorSoundPath, Mode=TwoWay}" PlaceholderText="C:\Sounds\error.wav"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Rip Started -->
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="16">
+                        <StackPanel Spacing="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Rip Started" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"/>
+                                <ToggleSwitch Grid.Column="1" IsOn="{x:Bind ViewModel.PlaySoundOnRipStart, Mode=TwoWay}" OnContent="" OffContent=""/>
+                            </Grid>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="System Sound" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox Grid.Column="0" ItemsSource="{x:Bind ViewModel.SoundAliasOptions}"
+                                              SelectedItem="{x:Bind ViewModel.RipStartSoundAlias, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch"/>
+                                    <Button Grid.Column="1" Content="▶ Preview"
+                                            CommandParameter="{x:Bind GetSoundParam(ViewModel.RipStartSoundAlias, ViewModel.RipStartSoundPath), Mode=OneWay}"
+                                            Command="{x:Bind ViewModel.PreviewSoundCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Custom WAV File (optional)" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                <TextBox Text="{x:Bind ViewModel.RipStartSoundPath, Mode=TwoWay}" PlaceholderText="C:\Sounds\start.wav"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </Expander>
+
             <!-- ══ Appearance ══════════════════════════════════════════════════ -->
             <Expander Header="Appearance" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <StackPanel Padding="0,12,0,0">

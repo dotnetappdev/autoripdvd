@@ -353,5 +353,22 @@ public class AppSettings
     public bool ShowAdvancedOptions { get; set; } = false;
     public bool MinimizeToSystemTray { get; set; } = false;
     public bool StartMinimized { get; set; } = false;
+
+    // Sound
+    public bool EnableSounds { get; set; } = true;
+    public bool PlaySoundOnCompletion { get; set; } = true;
+    public bool PlaySoundOnEjection { get; set; } = true;
+    public bool PlaySoundOnError { get; set; } = true;
+    public bool PlaySoundOnRipStart { get; set; } = false;
+    /// <summary>System sound alias name. One of: SystemAsterisk, SystemExclamation, SystemHand, SystemNotification, MailBeep.</summary>
+    public string CompletionSoundAlias { get; set; } = "SystemAsterisk";
+    public string EjectionSoundAlias   { get; set; } = "SystemNotification";
+    public string ErrorSoundAlias      { get; set; } = "SystemHand";
+    public string RipStartSoundAlias   { get; set; } = "SystemExclamation";
+    /// <summary>Optional custom .wav file path. Takes priority over alias when set.</summary>
+    public string CompletionSoundPath { get; set; } = string.Empty;
+    public string EjectionSoundPath   { get; set; } = string.Empty;
+    public string ErrorSoundPath      { get; set; } = string.Empty;
+    public string RipStartSoundPath   { get; set; } = string.Empty;
 }
 
