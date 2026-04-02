@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="AutoRipDVD.Views.DiscInfoDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AutoRipDVD.Views"
+    Title="Disc Information"
+    CloseButtonText="Close"
+    DefaultButton="Close">
+
+    <ScrollViewer MaxHeight="600" Width="500">
+        <StackPanel Spacing="16" Padding="0,0,0,8">
+            <!-- Drive Information -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Drive Information" 
+                           FontWeight="SemiBold" 
+                           FontSize="16"
+                           Margin="0,0,0,4"/>
+                
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="OS device name:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind DiscInfo.DeviceName, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Current profile:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind DiscInfo.CurrentProfile, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Manufacturer:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind DiscInfo.Manufacturer, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Product:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind DiscInfo.Product, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Revision:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind DiscInfo.Revision, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Serial number:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind DiscInfo.SerialNumber, Mode=OneWay}"/>
+                </Grid>
+            </StackPanel>
+
+            <!-- Disc Information -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Disc Information" 
+                           FontWeight="SemiBold" 
+                           FontSize="16"
+                           Margin="0,8,0,4"/>
+                
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Type:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind DiscInfo.DiscType, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Label:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind DiscInfo.VolumeLabel, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Protection:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind DiscInfo.Protection, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Data capacity:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1">
+                        <Run Text="{x:Bind DiscInfo.CapacityGB, Mode=OneWay}"/>
+                        <Run Text=" GB"/>
+                    </TextBlock>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Disc type:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind DiscInfo.CurrentProfile, Mode=OneWay}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Disc size:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="5" Grid.Column="1">
+                        <Run Text="{x:Bind DiscInfo.DiscSizeMM, Mode=OneWay}"/>
+                        <Run Text="mm"/>
+                    </TextBlock>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Maximum read rate:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="6" Grid.Column="1">
+                        <Run Text="{x:Bind DiscInfo.MaxReadRateMbps, Mode=OneWay}"/>
+                        <Run Text=" Mbps"/>
+                    </TextBlock>
+
+                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Number of layers:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{x:Bind DiscInfo.NumberOfLayers, Mode=OneWay}"/>
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>
