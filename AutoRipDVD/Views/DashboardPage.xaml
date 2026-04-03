@@ -12,162 +12,176 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="300"/>
+            <RowDefinition Height="260"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}"/>
-                    <TextBlock Text="Monitor active ripping jobs" 
-                               Style="{StaticResource BodyTextBlockStyle}" 
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                               Margin="0,4,0,0"/>
-                </StackPanel>
+        <!-- ══ Header ═══════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <Button Click="OpenDiscButton_Click"
-                            Style="{StaticResource AccentButtonStyle}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE958;" FontSize="16"/>
-                            <TextBlock Text="Open Disc"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Click="StartRippingButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE768;" FontSize="16"/>
-                            <TextBlock Text="Start Auto-Rip"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Click="StopRippingButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE71A;" FontSize="16"/>
-                            <TextBlock Text="Stop Auto-Rip"/>
-                        </StackPanel>
-                    </Button>
-                    
-                    <Button Click="ViewDiscInfoButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE946;" FontSize="16"/>
-                            <TextBlock Text="Info"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </StackPanel>
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Dashboard" Style="{StaticResource TitleTextBlockStyle}"/>
+                <TextBlock Text="DVD / Blu-ray Automatic Ripper"
+                           Style="{StaticResource BodyTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
 
-        <!-- Active Jobs -->
-        <Grid Grid.Row="1">
-            <ScrollViewer>
-                <StackPanel Spacing="12">
-                    <TextBlock Text="Active Jobs" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,12"/>
-                    
-                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.ActiveJobs, Mode=OneWay}">
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="models:RipJob">
-                                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="16"
-                                        Margin="0,0,0,12">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+            <!-- Toolbar -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
 
-                                        <!-- Title -->
-                                        <StackPanel Grid.Row="0" Grid.Column="0">
-                                            <TextBlock Text="{x:Bind Metadata.Title, Mode=OneWay}" 
-                                                       Style="{StaticResource SubtitleTextBlockStyle}"/>
-                                            <TextBlock Text="{x:Bind Disc.VolumeLabel, Mode=OneWay}" 
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                                        </StackPanel>
+                <!-- Start / Stop Auto-Rip -->
+                <Button x:Name="StartRipBtn"
+                        Click="StartRippingButton_Click"
+                        Style="{StaticResource AccentButtonStyle}"
+                        ToolTipService.ToolTip="Enable auto-rip: discs are ripped automatically when inserted">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE768;" FontSize="16"/>
+                        <TextBlock Text="Start Auto-Rip"/>
+                    </StackPanel>
+                </Button>
 
-                                        <!-- Status Badge -->
-                                        <Border Grid.Row="0" Grid.Column="1"
-                                                Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                                CornerRadius="4"
-                                                Padding="8,4"
-                                                VerticalAlignment="Top">
-                                            <TextBlock Text="{x:Bind Status, Mode=OneWay}" 
-                                                       Foreground="White"
-                                                       FontSize="12"/>
-                                        </Border>
+                <Button x:Name="StopRipBtn"
+                        Click="StopRippingButton_Click"
+                        ToolTipService.ToolTip="Stop auto-rip and cancel active jobs">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE71A;" FontSize="16"/>
+                        <TextBlock Text="Stop Auto-Rip"/>
+                    </StackPanel>
+                </Button>
 
-                                        <!-- Operation -->
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                                   Text="{x:Bind CurrentOperation, Mode=OneWay}"
-                                                   Margin="0,8,0,8"/>
+                <AppBarSeparator/>
 
-                                        <!-- Progress Bar -->
-                                        <ProgressBar Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                                     Value="{x:Bind Progress, Mode=OneWay}"
-                                                     Maximum="100"
-                                                     IsIndeterminate="{x:Bind IsIndeterminate, Mode=OneWay}"/>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
+                <!-- Manual rip for inserted disc -->
+                <Button Click="OpenDiscButton_Click"
+                        ToolTipService.ToolTip="Manually select titles from inserted disc">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE958;" FontSize="16"/>
+                        <TextBlock Text="Open Disc"/>
+                    </StackPanel>
+                </Button>
 
-                    <!-- Empty State -->
-                    <Border Height="200" 
-                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Visibility="{x:Bind HasNoActiveJobs, Mode=OneWay}">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <FontIcon Glyph="&#xE7C1;" FontSize="48" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                            <TextBlock Text="No active jobs" 
-                                       Style="{StaticResource SubtitleTextBlockStyle}"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       Margin="0,12,0,4"/>
-                            <TextBlock Text="Insert a disc to start ripping" 
-                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollViewer>
+                <Button Click="ViewDiscInfoButton_Click"
+                        ToolTipService.ToolTip="Show info about the currently inserted disc">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE946;" FontSize="16"/>
+                        <TextBlock Text="Disc Info"/>
+                    </StackPanel>
+                </Button>
+
+            </StackPanel>
         </Grid>
 
-        <!-- Recent Logs Header -->
-        <TextBlock Grid.Row="2" 
-                   Text="Recent Logs" 
-                   Style="{StaticResource SubtitleTextBlockStyle}" 
-                   Margin="0,24,0,12"/>
+        <!-- ══ Active Jobs ═══════════════════════════════════════════════════ -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Active Jobs" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,8"/>
 
-        <!-- Recent Logs -->
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.ActiveJobs, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:RipJob">
+                            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1" CornerRadius="8"
+                                    Padding="16" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Title row -->
+                                    <StackPanel Grid.Row="0" Grid.Column="0">
+                                        <TextBlock Text="{x:Bind Metadata.Title, Mode=OneWay}"
+                                                   Style="{StaticResource SubtitleTextBlockStyle}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{x:Bind Disc.VolumeLabel, Mode=OneWay}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+
+                                    <!-- Status badge -->
+                                    <Border Grid.Row="0" Grid.Column="1"
+                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                            CornerRadius="4" Padding="10,4" VerticalAlignment="Top">
+                                        <TextBlock Text="{x:Bind Status, Mode=OneWay}"
+                                                   Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+
+                                    <!-- Operation text -->
+                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                                               Text="{x:Bind CurrentOperation, Mode=OneWay}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               Margin="0,6,0,6"/>
+
+                                    <!-- Progress bar -->
+                                    <ProgressBar Grid.Row="2" Grid.ColumnSpan="2"
+                                                 Value="{x:Bind Progress, Mode=OneWay}"
+                                                 Maximum="100"
+                                                 IsIndeterminate="{x:Bind IsIndeterminate, Mode=OneWay}"/>
+
+                                    <!-- Output path (when complete) -->
+                                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
+                                               Text="{x:Bind OutputPath, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,6,0,0"
+                                               Visibility="{x:Bind HasOutputPath, Mode=OneWay}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+
+                <!-- Empty state -->
+                <Border Height="180"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="8"
+                        Visibility="{x:Bind HasNoActiveJobs, Mode=OneWay}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+                        <FontIcon Glyph="&#xE7C1;" FontSize="48"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="No active rip jobs"
+                                   Style="{StaticResource SubtitleTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Text="Insert a DVD or Blu-ray, or click 'Open Disc' to rip manually"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                   TextAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ══ Recent Logs header ════════════════════════════════════════════ -->
+        <TextBlock Grid.Row="2"
+                   Text="Recent Logs"
+                   Style="{StaticResource SubtitleTextBlockStyle}"
+                   Margin="0,20,0,10"/>
+
+        <!-- ══ Recent Logs ═══════════════════════════════════════════════════ -->
         <Border Grid.Row="3"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="8">
+                BorderThickness="1" CornerRadius="8">
             <ScrollViewer>
                 <ItemsRepeater ItemsSource="{x:Bind ViewModel.RecentLogs, Mode=OneWay}" Margin="16">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate x:DataType="x:String">
-                            <TextBlock Text="{x:Bind}" 
-                                       FontFamily="Consolas" 
-                                       FontSize="12"
-                                       Margin="0,2"/>
+                            <TextBlock Text="{x:Bind}"
+                                       FontFamily="Consolas" FontSize="11"
+                                       Margin="0,2" TextWrapping="NoWrap"/>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>
                 </ItemsRepeater>

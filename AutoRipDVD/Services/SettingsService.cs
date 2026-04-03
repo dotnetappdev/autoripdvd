@@ -1,5 +1,5 @@
 using AutoRipDVD.Models;
-using Microsoft.Data.Sqlite;
+using AutoRipDVD.Database.Repositories;
 
 namespace AutoRipDVD.Services;
 
@@ -12,85 +12,130 @@ public interface ISettingsService
 
 public class SettingsService : ISettingsService
 {
-    private readonly IDatabase _database;
-    
-    public AppSettings Settings { get; private set; }
+    private readonly SettingsRepository _repository;
+
+    public AppSettings Settings { get; private set; } = new();
 
     public SettingsService(IDatabase database)
     {
-        _database = database;
-        Settings = new AppSettings();
+        _repository = database.Settings;
     }
 
     public async Task LoadSettingsAsync()
     {
         try
         {
-            using var connection = await _database.GetConnectionAsync();
-            Settings = new AppSettings();
+            var data = await _repository.LoadAllAsync();
+            var s = new AppSettings();
 
-            // Load all settings from database
-            var query = "SELECT Key, Value FROM Settings";
-            using var cmd = new SqliteCommand(query, connection);
-            using var reader = await cmd.ExecuteReaderAsync();
+            string Get(string key, string def) =>
+                data.TryGetValue(key, out var v) ? v : def;
 
-            while (await reader.ReadAsync())
-            {
-                var key = reader.GetString(0);
-                var value = reader.GetString(1);
+            bool GetBool(string key, bool def) =>
+                data.TryGetValue(key, out var v) && bool.TryParse(v, out var b) ? b : def;
 
-                switch (key)
-                {
-                    case "MakeMkvPath":
-                        Settings.MakeMkvPath = value;
-                        break;
-                    case "HandBrakePath":
-                        Settings.HandBrakePath = value;
-                        break;
-                    case "OutputPath":
-                        Settings.OutputPath = value;
-                        break;
-                    case "TempPath":
-                        Settings.TempPath = value;
-                        break;
-                    case "OmdbApiKey":
-                        Settings.OmdbApiKey = value;
-                        break;
-                    case "TvdbApiKey":
-                        Settings.TvdbApiKey = value;
-                        break;
-                    case "TmdbApiKey":
-                        Settings.TmdbApiKey = value;
-                        break;
-                    case "HandBrakePreset":
-                        Settings.HandBrakePreset = value;
-                        break;
-                    case "NotificationWebhook":
-                        Settings.NotificationWebhook = value;
-                        break;
-                    case "AutoRip":
-                        Settings.AutoRip = bool.Parse(value);
-                        break;
-                    case "RipMainFeatureOnly":
-                        Settings.RipMainFeatureOnly = bool.Parse(value);
-                        break;
-                    case "EjectWhenComplete":
-                        Settings.EjectWhenComplete = bool.Parse(value);
-                        break;
-                    case "TranscodeAfterRip":
-                        Settings.TranscodeAfterRip = bool.Parse(value);
-                        break;
-                    case "EnableNotifications":
-                        Settings.EnableNotifications = bool.Parse(value);
-                        break;
-                    case "MinimumTitleLengthSeconds":
-                        Settings.MinimumTitleLengthSeconds = int.Parse(value);
-                        break;
-                    case "VideoQuality":
-                        Settings.VideoQuality = int.Parse(value);
-                        break;
-                }
-            }
+            int GetInt(string key, int def) =>
+                data.TryGetValue(key, out var v) && int.TryParse(v, out var i) ? i : def;
+
+            T GetEnum<T>(string key, T def) where T : struct, Enum =>
+                data.TryGetValue(key, out var v) && Enum.TryParse<T>(v, out var e) ? e : def;
+
+            // Paths
+            s.MakeMkvPath   = Get("MakeMkvPath",   s.MakeMkvPath);
+            s.HandBrakePath = Get("HandBrakePath",  s.HandBrakePath);
+            s.OutputPath    = Get("OutputPath",     s.OutputPath);
+            s.TempPath      = Get("TempPath",       s.TempPath);
+            s.MakeMkvDataDirectory = Get("MakeMkvDataDirectory", s.MakeMkvDataDirectory);
+            s.LogPath       = Get("LogPath",        s.LogPath);
+
+            // API Keys
+            s.OmdbApiKey  = Get("OmdbApiKey",  string.Empty);
+            s.TmdbApiKey  = Get("TmdbApiKey",  string.Empty);
+            s.TvdbApiKey  = Get("TvdbApiKey",  string.Empty);
+            s.AnidbApiKey = Get("AnidbApiKey", string.Empty);
+
+            // General ripping
+            s.AutoRip                   = GetBool("AutoRip",                   false);
+            s.RipMainFeatureOnly        = GetBool("RipMainFeatureOnly",        true);
+            s.EjectWhenComplete         = GetBool("EjectWhenComplete",         true);
+            s.TranscodeAfterRip         = GetBool("TranscodeAfterRip",        true);
+            s.MinimumTitleLengthSeconds = GetInt("MinimumTitleLengthSeconds",  120);
+            s.AutoMatchMetadata         = GetBool("AutoMatchMetadata",         true);
+            s.CreatePlexFolderStructure = GetBool("CreatePlexFolderStructure", true);
+
+            // MakeMKV
+            s.MakeMkvQualityPreset  = GetEnum("MakeMkvQualityPreset",  MakeMKVQuality.Original);
+            s.EnableInternetAccess  = GetBool("EnableInternetAccess",  true);
+            s.LogDebugMessages      = GetBool("LogDebugMessages",      false);
+            s.ExpertMode            = GetBool("ExpertMode",            false);
+            s.PreserveDTS           = GetBool("PreserveDTS",           true);
+            s.PreserveTrueHD        = GetBool("PreserveTrueHD",        true);
+            s.IncludeAllAudioTracks = GetBool("IncludeAllAudioTracks", false);
+            s.IncludeAllSubtitles   = GetBool("IncludeAllSubtitles",   true);
+            s.PreserveChapterMarkers = GetBool("PreserveChapterMarkers", true);
+
+            // HandBrake general
+            s.HandBrakePreset          = Get("HandBrakePreset",           "Fast 1080p30");
+            s.VideoQuality             = GetInt("VideoQuality",            22);
+            s.VideoEncoder             = GetEnum("VideoEncoder",           VideoEncoderType.x264);
+            s.AudioEncoder             = GetEnum("AudioEncoder",           AudioEncoderType.AAC);
+            s.AudioBitrate             = GetInt("AudioBitrate",            160);
+            s.UseHardwareAcceleration  = GetBool("UseHardwareAcceleration", true);
+            s.AutoDetectHardwareEncoder = GetBool("AutoDetectHardwareEncoder", true);
+
+            // HandBrake advanced
+            s.EnableTwoPassEncoding    = GetBool("EnableTwoPassEncoding",  false);
+            s.EnableTurboFirstPass     = GetBool("EnableTurboFirstPass",   true);
+            s.x264Preset               = Get("x264Preset",                "medium");
+            s.x264Tune                 = Get("x264Tune",                  "none");
+            s.x264Profile              = Get("x264Profile",               "auto");
+            s.x265Preset               = Get("x265Preset",               "medium");
+            s.CustomEncoderOptions     = Get("CustomEncoderOptions",       string.Empty);
+            s.NumberOfPreviewsToScan   = GetInt("NumberOfPreviewsToScan", 10);
+            s.ProcessPriority          = GetEnum("ProcessPriority",       ProcessPriorityLevel.Normal);
+
+            // HandBrake filters
+            s.EnableDeinterlacing = GetBool("EnableDeinterlacing", false);
+            s.EnableDenoise       = GetBool("EnableDenoise",       false);
+            s.DenoisePreset       = Get("DenoisePreset",           "medium");
+            s.EnableSharpen       = GetBool("EnableSharpen",       false);
+            s.EnableDeblock       = GetBool("EnableDeblock",       false);
+
+            // HandBrake logging
+            s.LogVerbosity              = GetEnum("LogVerbosity",              LogVerbosity.Standard);
+            s.ClearLogsOlderThan30Days  = GetBool("ClearLogsOlderThan30Days", true);
+            s.CustomLogLocation         = Get("CustomLogLocation",             string.Empty);
+
+            // Notifications
+            s.EnableNotifications = GetBool("EnableNotifications", true);
+            s.NotificationWebhook = Get("NotificationWebhook",    string.Empty);
+            s.NotifyOnCompletion  = GetBool("NotifyOnCompletion",  true);
+            s.NotifyOnError       = GetBool("NotifyOnError",       true);
+            s.SlackWebhook        = Get("SlackWebhook",            string.Empty);
+            s.DiscordWebhook      = Get("DiscordWebhook",          string.Empty);
+
+            // Sound
+            s.EnableSounds           = GetBool("EnableSounds",           true);
+            s.PlaySoundOnCompletion  = GetBool("PlaySoundOnCompletion",  true);
+            s.PlaySoundOnEjection    = GetBool("PlaySoundOnEjection",    true);
+            s.PlaySoundOnError       = GetBool("PlaySoundOnError",       true);
+            s.PlaySoundOnRipStart    = GetBool("PlaySoundOnRipStart",    false);
+            s.CompletionSoundAlias   = Get("CompletionSoundAlias",   "SystemAsterisk");
+            s.EjectionSoundAlias     = Get("EjectionSoundAlias",     "SystemNotification");
+            s.ErrorSoundAlias        = Get("ErrorSoundAlias",        "SystemHand");
+            s.RipStartSoundAlias     = Get("RipStartSoundAlias",     "SystemExclamation");
+            s.CompletionSoundPath    = Get("CompletionSoundPath",    string.Empty);
+            s.EjectionSoundPath      = Get("EjectionSoundPath",      string.Empty);
+            s.ErrorSoundPath         = Get("ErrorSoundPath",         string.Empty);
+            s.RipStartSoundPath      = Get("RipStartSoundPath",      string.Empty);
+
+            // UI
+            s.Theme             = Get("Theme",             "System");
+            s.ShowAdvancedOptions = GetBool("ShowAdvancedOptions", false);
+            s.MinimizeToSystemTray = GetBool("MinimizeToSystemTray", false);
+            s.StartMinimized    = GetBool("StartMinimized",    false);
+
+            Settings = s;
         }
         catch
         {
@@ -100,46 +145,105 @@ public class SettingsService : ISettingsService
 
     public async Task SaveSettingsAsync()
     {
-        try
+        var s = Settings;
+        var data = new Dictionary<string, string>
         {
-            using var connection = await _database.GetConnectionAsync();
-            var timestamp = DateTime.UtcNow.ToString("O");
+            // Paths
+            ["MakeMkvPath"]          = s.MakeMkvPath,
+            ["HandBrakePath"]        = s.HandBrakePath,
+            ["OutputPath"]           = s.OutputPath,
+            ["TempPath"]             = s.TempPath,
+            ["MakeMkvDataDirectory"] = s.MakeMkvDataDirectory,
+            ["LogPath"]              = s.LogPath,
 
-            await SaveSettingAsync(connection, "MakeMkvPath", Settings.MakeMkvPath, timestamp);
-            await SaveSettingAsync(connection, "HandBrakePath", Settings.HandBrakePath, timestamp);
-            await SaveSettingAsync(connection, "OutputPath", Settings.OutputPath, timestamp);
-            await SaveSettingAsync(connection, "TempPath", Settings.TempPath, timestamp);
-            await SaveSettingAsync(connection, "OmdbApiKey", Settings.OmdbApiKey, timestamp);
-            await SaveSettingAsync(connection, "TvdbApiKey", Settings.TvdbApiKey, timestamp);
-            await SaveSettingAsync(connection, "TmdbApiKey", Settings.TmdbApiKey, timestamp);
-            await SaveSettingAsync(connection, "HandBrakePreset", Settings.HandBrakePreset, timestamp);
-            await SaveSettingAsync(connection, "NotificationWebhook", Settings.NotificationWebhook, timestamp);
-            await SaveSettingAsync(connection, "AutoRip", Settings.AutoRip.ToString(), timestamp);
-            await SaveSettingAsync(connection, "RipMainFeatureOnly", Settings.RipMainFeatureOnly.ToString(), timestamp);
-            await SaveSettingAsync(connection, "EjectWhenComplete", Settings.EjectWhenComplete.ToString(), timestamp);
-            await SaveSettingAsync(connection, "TranscodeAfterRip", Settings.TranscodeAfterRip.ToString(), timestamp);
-            await SaveSettingAsync(connection, "EnableNotifications", Settings.EnableNotifications.ToString(), timestamp);
-            await SaveSettingAsync(connection, "MinimumTitleLengthSeconds", Settings.MinimumTitleLengthSeconds.ToString(), timestamp);
-            await SaveSettingAsync(connection, "VideoQuality", Settings.VideoQuality.ToString(), timestamp);
-        }
-        catch (Exception ex)
-        {
-            // Log error
-            Console.WriteLine($"Failed to save settings: {ex.Message}");
-        }
-    }
+            // API Keys
+            ["OmdbApiKey"]           = s.OmdbApiKey,
+            ["TmdbApiKey"]           = s.TmdbApiKey,
+            ["TvdbApiKey"]           = s.TvdbApiKey,
+            ["AnidbApiKey"]          = s.AnidbApiKey,
 
-    private static async Task SaveSettingAsync(SqliteConnection connection, string key, string value, string timestamp)
-    {
-        var query = @"
-            INSERT INTO Settings (Key, Value, UpdatedAt) 
-            VALUES (@key, @value, @timestamp)
-            ON CONFLICT(Key) DO UPDATE SET Value = @value, UpdatedAt = @timestamp";
+            // General ripping
+            ["AutoRip"]                   = s.AutoRip.ToString(),
+            ["RipMainFeatureOnly"]        = s.RipMainFeatureOnly.ToString(),
+            ["EjectWhenComplete"]         = s.EjectWhenComplete.ToString(),
+            ["TranscodeAfterRip"]         = s.TranscodeAfterRip.ToString(),
+            ["MinimumTitleLengthSeconds"] = s.MinimumTitleLengthSeconds.ToString(),
+            ["AutoMatchMetadata"]         = s.AutoMatchMetadata.ToString(),
+            ["CreatePlexFolderStructure"] = s.CreatePlexFolderStructure.ToString(),
 
-        using var cmd = new SqliteCommand(query, connection);
-        cmd.Parameters.AddWithValue("@key", key);
-        cmd.Parameters.AddWithValue("@value", value);
-        cmd.Parameters.AddWithValue("@timestamp", timestamp);
-        await cmd.ExecuteNonQueryAsync();
+            // MakeMKV
+            ["MakeMkvQualityPreset"]  = s.MakeMkvQualityPreset.ToString(),
+            ["EnableInternetAccess"]  = s.EnableInternetAccess.ToString(),
+            ["LogDebugMessages"]      = s.LogDebugMessages.ToString(),
+            ["ExpertMode"]            = s.ExpertMode.ToString(),
+            ["PreserveDTS"]           = s.PreserveDTS.ToString(),
+            ["PreserveTrueHD"]        = s.PreserveTrueHD.ToString(),
+            ["IncludeAllAudioTracks"] = s.IncludeAllAudioTracks.ToString(),
+            ["IncludeAllSubtitles"]   = s.IncludeAllSubtitles.ToString(),
+            ["PreserveChapterMarkers"] = s.PreserveChapterMarkers.ToString(),
+
+            // HandBrake general
+            ["HandBrakePreset"]          = s.HandBrakePreset,
+            ["VideoQuality"]             = s.VideoQuality.ToString(),
+            ["VideoEncoder"]             = s.VideoEncoder.ToString(),
+            ["AudioEncoder"]             = s.AudioEncoder.ToString(),
+            ["AudioBitrate"]             = s.AudioBitrate.ToString(),
+            ["UseHardwareAcceleration"]  = s.UseHardwareAcceleration.ToString(),
+            ["AutoDetectHardwareEncoder"] = s.AutoDetectHardwareEncoder.ToString(),
+
+            // HandBrake advanced
+            ["EnableTwoPassEncoding"]  = s.EnableTwoPassEncoding.ToString(),
+            ["EnableTurboFirstPass"]   = s.EnableTurboFirstPass.ToString(),
+            ["x264Preset"]             = s.x264Preset,
+            ["x264Tune"]               = s.x264Tune,
+            ["x264Profile"]            = s.x264Profile,
+            ["x265Preset"]             = s.x265Preset,
+            ["CustomEncoderOptions"]   = s.CustomEncoderOptions,
+            ["NumberOfPreviewsToScan"] = s.NumberOfPreviewsToScan.ToString(),
+            ["ProcessPriority"]        = s.ProcessPriority.ToString(),
+
+            // Filters
+            ["EnableDeinterlacing"] = s.EnableDeinterlacing.ToString(),
+            ["EnableDenoise"]       = s.EnableDenoise.ToString(),
+            ["DenoisePreset"]       = s.DenoisePreset,
+            ["EnableSharpen"]       = s.EnableSharpen.ToString(),
+            ["EnableDeblock"]       = s.EnableDeblock.ToString(),
+
+            // Logging
+            ["LogVerbosity"]             = s.LogVerbosity.ToString(),
+            ["ClearLogsOlderThan30Days"] = s.ClearLogsOlderThan30Days.ToString(),
+            ["CustomLogLocation"]        = s.CustomLogLocation,
+
+            // Notifications
+            ["EnableNotifications"] = s.EnableNotifications.ToString(),
+            ["NotificationWebhook"] = s.NotificationWebhook,
+            ["NotifyOnCompletion"]  = s.NotifyOnCompletion.ToString(),
+            ["NotifyOnError"]       = s.NotifyOnError.ToString(),
+            ["SlackWebhook"]        = s.SlackWebhook,
+            ["DiscordWebhook"]      = s.DiscordWebhook,
+
+            // Sound
+            ["EnableSounds"]          = s.EnableSounds.ToString(),
+            ["PlaySoundOnCompletion"] = s.PlaySoundOnCompletion.ToString(),
+            ["PlaySoundOnEjection"]   = s.PlaySoundOnEjection.ToString(),
+            ["PlaySoundOnError"]      = s.PlaySoundOnError.ToString(),
+            ["PlaySoundOnRipStart"]   = s.PlaySoundOnRipStart.ToString(),
+            ["CompletionSoundAlias"]  = s.CompletionSoundAlias,
+            ["EjectionSoundAlias"]    = s.EjectionSoundAlias,
+            ["ErrorSoundAlias"]       = s.ErrorSoundAlias,
+            ["RipStartSoundAlias"]    = s.RipStartSoundAlias,
+            ["CompletionSoundPath"]   = s.CompletionSoundPath,
+            ["EjectionSoundPath"]     = s.EjectionSoundPath,
+            ["ErrorSoundPath"]        = s.ErrorSoundPath,
+            ["RipStartSoundPath"]     = s.RipStartSoundPath,
+
+            // UI
+            ["Theme"]               = s.Theme,
+            ["ShowAdvancedOptions"] = s.ShowAdvancedOptions.ToString(),
+            ["MinimizeToSystemTray"] = s.MinimizeToSystemTray.ToString(),
+            ["StartMinimized"]      = s.StartMinimized.ToString(),
+        };
+
+        await _repository.SaveManyAsync(data);
     }
 }

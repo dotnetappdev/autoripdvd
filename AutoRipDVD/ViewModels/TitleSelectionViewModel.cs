@@ -273,7 +273,7 @@ public partial class SelectableTitleInfo : ObservableObject
         $"Title {Title.Index}: {Title.Name} ({FormatDuration(Title.Duration)})";
 
     public string Details =>
-        $"{Title.ChapterCount} chapters • {FormatSize(Title.Size)} • {Title.VideoCodec} • {Title.AudioCodec}";
+        $"{Title.ChapterCount} chapters • {FormatSize(Title.SizeBytes)} • {Title.VideoCodec} • {Title.AudioCodec}";
 
     public string TypeBadge =>
         Title.IsMainFeature ? "Main Feature" : "Extra";

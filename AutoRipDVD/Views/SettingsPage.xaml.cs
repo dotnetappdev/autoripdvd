@@ -14,6 +14,9 @@ public sealed partial class SettingsPage : Page
         ViewModel = App.Host.Services.GetRequiredService<SettingsViewModel>();
         InitializeComponent();
     }
+
+    /// <summary>Packs alias + path into a single CommandParameter string for the Preview button.</summary>
+    private static string GetSoundParam(string alias, string path) => $"{alias}|{path}";
     
     protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
     {

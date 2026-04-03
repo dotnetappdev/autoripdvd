@@ -63,13 +63,14 @@
         </StackPanel>
 
         <!-- Filter Controls -->
-        <StackPanel Grid.Row="1" 
-                    Spacing="8" 
+        <StackPanel Grid.Row="1"
+                    Spacing="8"
                     Padding="0,0,0,12"
                     Orientation="Horizontal"
                     Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
-            <CheckBox Content="Auto-filter episodes/extras"
-                      IsChecked="{x:Bind ViewModel.AutoFilterEnabled, Mode=TwoWay}"/>
+            <CheckBox Content="Ignore Extras / Bonus Features"
+                      IsChecked="{x:Bind ViewModel.AutoFilterEnabled, Mode=TwoWay}"
+                      ToolTipService.ToolTip="When checked, only main-feature titles are selected automatically"/>
             <Button Content="Apply Filter" Command="{x:Bind ViewModel.ApplyAutoFilterCommand}"/>
             <AppBarSeparator/>
             <Button Content="Select All" Command="{x:Bind ViewModel.SelectAllCommand}"/>
