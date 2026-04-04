@@ -47,6 +47,7 @@ public enum RipStatus
     FetchingMetadata,
     Ripping,
     Transcoding,
+    CreatingIso,
     Completed,
     Failed,
     Cancelled
@@ -204,9 +205,17 @@ public class RipJob
     public List<TitleInfo> Titles { get; set; } = new();
     public List<int> SelectedTitleIndices { get; set; } = new();
     
+    // ISO output (populated when AutoCreateIso is enabled)
+    public string IsoPath { get; set; } = string.Empty;
+    public bool HasIso => !string.IsNullOrEmpty(IsoPath) && File.Exists(IsoPath);
+
+    /// <summary>Live MakeMKV stats reported during MKV creation (non-null while ripping).</summary>
+    public MakeMkvRipStats? RipStats { get; set; }
+
     public bool IsIndeterminate => Status == RipStatus.Detecting || Status == RipStatus.FetchingMetadata;
     public bool HasCompleted => CompletedAt.HasValue;
     public bool HasOutputPath => !string.IsNullOrEmpty(OutputPath);
+    public bool HasRipStats => RipStats?.HasStats == true;
 }
 
 public class TitleInfo
@@ -260,11 +269,25 @@ public class AppSettings
     // Paths
     public string MakeMkvPath { get; set; } = @"C:\Program Files (x86)\MakeMKV\makemkvcon64.exe";
     public string HandBrakePath { get; set; } = @"C:\Program Files\HandBrake\HandBrakeCLI.exe";
+    public string FfmpegPath { get; set; } = @"C:\Program Files\ffmpeg\bin\ffmpeg.exe";
+    public string FfprobePath { get; set; } = @"C:\Program Files\ffmpeg\bin\ffprobe.exe";
+    public string MkvMergePath { get; set; } = @"C:\Program Files\MKVToolNix\mkvmerge.exe";
+    public string MkvExtractPath { get; set; } = @"C:\Program Files\MKVToolNix\mkvextract.exe";
+    public string TesseractPath { get; set; } = @"C:\Program Files\Tesseract-OCR\tesseract.exe";
     public string OutputPath { get; set; } = @"D:\Ripped";
     public string TempPath { get; set; } = Path.Combine(Path.GetTempPath(), "AutoRipDVD");
     public string MakeMkvDataDirectory { get; set; } = @"C:\Users\{USER}\.MakeMKV";
     public string LogPath { get; set; } = "";
     
+    // ── Preview / filmstrip settings ──────────────────────────────────────────
+    public int     FilmstripFrameCount    { get; set; } = 8;     // number of filmstrip thumbnails
+    public int     PreviewThumbnailWidth  { get; set; } = 320;   // filmstrip thumb width  (px)
+    public int     PreviewThumbnailHeight { get; set; } = 180;   // filmstrip thumb height (px)
+    public int     PreviewWidth           { get; set; } = 640;   // main preview width  (px)
+    public int     PreviewHeight          { get; set; } = 360;   // main preview height (px)
+    public bool    AutoLoadPreview        { get; set; } = true;
+    public bool    PreviewSubtitleOverlay { get; set; } = true;  // show subtitle text in preview
+
     // API Keys
     public string OmdbApiKey { get; set; } = string.Empty;
     public string TvdbApiKey { get; set; } = string.Empty;
@@ -316,7 +339,37 @@ public class AppSettings
     public int AudioBitrate { get; set; } = 160;
     public bool UseHardwareAcceleration { get; set; } = true;
     public bool AutoDetectHardwareEncoder { get; set; } = true;
-    
+
+    // Output format
+    public OutputFormat DefaultOutputFormat { get; set; } = OutputFormat.MKV;
+    public AudioMixdown DefaultAudioMixdown { get; set; } = AudioMixdown.Auto;
+
+    // Audio preferences
+    public string PreferredAudioLanguages { get; set; } = "eng";    // comma-separated ISO 639-2
+    public string PreferredSubtitleLanguages { get; set; } = "eng";
+    public bool PassthroughDolbyTrueHd { get; set; } = true;
+    public bool PassthroughDts { get; set; } = true;
+    public bool PassthroughDolbyDigital { get; set; } = false;
+    public double AudioGainDb { get; set; } = 0.0;
+
+    // Picture settings
+    public bool AutoCrop { get; set; } = true;
+    public bool KeepAspectRatio { get; set; } = true;
+    public int? MaxWidth { get; set; }
+    public int? MaxHeight { get; set; }
+
+    // HDR
+    public HdrMode HdrHandling { get; set; } = HdrMode.Passthrough;
+
+    // Subtitle defaults
+    public bool BurnForcedSubtitles { get; set; } = false;
+    public bool ExtractSubtitlesToSrt { get; set; } = false;
+    public bool IncludeForcedSubsOnly { get; set; } = false;
+
+    // Disc analysis
+    public bool RunDiscAnalysisBeforeRip { get; set; } = true;
+    public bool ShowCopyProtectionInfo { get; set; } = true;
+
     // HandBrake Advanced Video Settings
     public bool EnableTwoPassEncoding { get; set; } = false;
     public bool EnableTurboFirstPass { get; set; } = true;
@@ -325,13 +378,18 @@ public class AppSettings
     public string x264Profile { get; set; } = "auto"; // auto, baseline, main, high
     public string x265Preset { get; set; } = "medium";
     public string CustomEncoderOptions { get; set; } = string.Empty;
-    
+
     // HandBrake Filters
     public bool EnableDeinterlacing { get; set; } = false;
+    public string DeinterlacePreset { get; set; } = "default";
+    public bool EnableDetelecine { get; set; } = false;
     public bool EnableDenoise { get; set; } = false;
     public string DenoisePreset { get; set; } = "medium"; // light, medium, strong
+    public string DenoiseTune { get; set; } = "none";
     public bool EnableSharpen { get; set; } = false;
+    public string SharpenPreset { get; set; } = "medium";
     public bool EnableDeblock { get; set; } = false;
+    public bool GrayscaleVideo { get; set; } = false;
     
     // HandBrake Logging
     public LogVerbosity LogVerbosity { get; set; } = LogVerbosity.Standard;
@@ -339,6 +397,16 @@ public class AppSettings
     public bool CopyLogsToSpecifiedLocation { get; set; } = false;
     public bool ClearLogsOlderThan30Days { get; set; } = true;
     public string CustomLogLocation { get; set; } = string.Empty;
+
+    // ── ISO / Disc image settings ─────────────────────────────────────────────
+    public bool AutoCreateIso { get; set; } = false;
+    public IsoCreationMode DefaultIsoMode { get; set; } = IsoCreationMode.RawSectorCopy;
+    public string IsoOutputPath { get; set; } = string.Empty;  // empty = use OutputPath
+    public bool CreateIsoInParallel { get; set; } = false;     // rip MKV + ISO simultaneously
+    public bool VerifyIsoAfterCreation { get; set; } = false;  // compare sector count
+    public string ImgBurnPath { get; set; } = @"C:\Program Files (x86)\ImgBurn\ImgBurn.exe";
+    public string MkisofsPath { get; set; } = string.Empty;    // auto-detected if empty
+    public bool EjectAfterIso { get; set; } = true;
     
     // Notifications
     public bool EnableNotifications { get; set; } = true;

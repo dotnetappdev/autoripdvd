@@ -5,7 +5,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:AutoRipDVD.Models"
+    xmlns:local="using:AutoRipDVD.Views"
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <local:BoolToVisibilityConverter        x:Key="BoolToVisibilityConverter"/>
+        <local:BoolToVisibilityInverseConverter x:Key="BoolToVisibilityInverseConverter"/>
+    </Page.Resources>
 
     <Grid Padding="24">
         <Grid.RowDefinitions>
@@ -87,57 +93,200 @@
                                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1" CornerRadius="8"
                                     Padding="16" Margin="0,0,0,10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="10">
 
-                                    <!-- Title row -->
-                                    <StackPanel Grid.Row="0" Grid.Column="0">
-                                        <TextBlock Text="{x:Bind Metadata.Title, Mode=OneWay}"
-                                                   Style="{StaticResource SubtitleTextBlockStyle}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{x:Bind Disc.VolumeLabel, Mode=OneWay}"
-                                                   Style="{StaticResource CaptionTextBlockStyle}"
-                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                    <!-- ── Title / Status row ─────────────────────────── -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{x:Bind Metadata.Title, Mode=OneWay}"
+                                                       Style="{StaticResource SubtitleTextBlockStyle}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{x:Bind Disc.VolumeLabel, Mode=OneWay}"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1"
+                                                Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                CornerRadius="4" Padding="10,4" VerticalAlignment="Top">
+                                            <TextBlock Text="{x:Bind Status, Mode=OneWay}"
+                                                       Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- ── Simple progress (non-ripping states) ──────── -->
+                                    <StackPanel Visibility="{x:Bind HasRipStats, Converter={StaticResource BoolToVisibilityInverseConverter}, Mode=OneWay}">
+                                        <TextBlock Text="{x:Bind CurrentOperation, Mode=OneWay}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   Margin="0,0,0,6"/>
+                                        <ProgressBar Value="{x:Bind Progress, Mode=OneWay}"
+                                                     Maximum="100"
+                                                     IsIndeterminate="{x:Bind IsIndeterminate, Mode=OneWay}"/>
                                     </StackPanel>
 
-                                    <!-- Status badge -->
-                                    <Border Grid.Row="0" Grid.Column="1"
-                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
-                                            CornerRadius="4" Padding="10,4" VerticalAlignment="Top">
-                                        <TextBlock Text="{x:Bind Status, Mode=OneWay}"
-                                                   Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                    <!-- ── MakeMKV-style stats panel (ripping state) ─── -->
+                                    <Border Visibility="{x:Bind HasRipStats, Converter={StaticResource BoolToVisibilityConverter}, Mode=OneWay}"
+                                            Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1" CornerRadius="6" Padding="12">
+                                        <StackPanel Spacing="8">
+
+                                            <!-- Information table -->
+                                            <TextBlock Text="Information"
+                                                       FontWeight="SemiBold" FontSize="13"/>
+
+                                            <Grid ColumnSpacing="8" RowSpacing="3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Source -->
+                                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                                           Text="Source :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.Source, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"
+                                                           TextTrimming="CharacterEllipsis"/>
+
+                                                <!-- Source file -->
+                                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                                           Text="Source file :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.SourceFile, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"
+                                                           TextTrimming="CharacterEllipsis"/>
+
+                                                <!-- Source size -->
+                                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                                           Text="Source size :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.SourceSize, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"/>
+
+                                                <!-- Read rate -->
+                                                <TextBlock Grid.Row="3" Grid.Column="0"
+                                                           Text="Read rate :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.ReadRate, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"/>
+
+                                                <!-- Output file -->
+                                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                                           Text="Output file :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.OutputFile, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"
+                                                           TextTrimming="CharacterEllipsis"/>
+
+                                                <!-- Output size -->
+                                                <TextBlock Grid.Row="5" Grid.Column="0"
+                                                           Text="Output size :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="5" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.OutputSize, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"/>
+
+                                                <!-- Free space -->
+                                                <TextBlock Grid.Row="6" Grid.Column="0"
+                                                           Text="Free space :" FontFamily="Consolas" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="6" Grid.Column="1"
+                                                           Text="{x:Bind RipStats.FreeSpace, Mode=OneWay}"
+                                                           FontFamily="Consolas" FontSize="11"/>
+                                            </Grid>
+
+                                            <!-- Per-title progress bar -->
+                                            <Grid Margin="0,6,0,0" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{x:Bind RipStats.TitleProgressLabel, Mode=OneWay}"
+                                                           FontSize="12"/>
+                                                <TextBlock Grid.Column="1" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                                    <Run Text="Elapsed: "/>
+                                                    <Run Text="{x:Bind RipStats.TitleElapsedFormatted, Mode=OneWay}"/>
+                                                    <Run Text=" / Remaining: "/>
+                                                    <Run Text="{x:Bind RipStats.TitleRemainingFormatted, Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </Grid>
+                                            <ProgressBar Value="{x:Bind RipStats.TitleProgressValue, Mode=OneWay}"
+                                                         Maximum="100" Height="14"/>
+
+                                            <!-- Overall progress bar -->
+                                            <Grid Margin="0,4,0,0" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{x:Bind RipStats.OverallProgressLabel, Mode=OneWay}"
+                                                           FontSize="12"/>
+                                                <TextBlock Grid.Column="1" FontSize="11"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}">
+                                                    <Run Text="Elapsed: "/>
+                                                    <Run Text="{x:Bind RipStats.OverallElapsedFormatted, Mode=OneWay}"/>
+                                                    <Run Text=" / Remaining: "/>
+                                                    <Run Text="{x:Bind RipStats.OverallRemainingFormatted, Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </Grid>
+                                            <ProgressBar Value="{x:Bind RipStats.OverallProgressValue, Mode=OneWay}"
+                                                         Maximum="100" Height="14"/>
+
+                                            <!-- Log messages (title added / skipped) -->
+                                            <Border Margin="0,8,0,0"
+                                                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                    BorderThickness="1" CornerRadius="4"
+                                                    MaxHeight="130">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsRepeater ItemsSource="{x:Bind RipStats.Messages, Mode=OneWay}"
+                                                                   Margin="8,6">
+                                                        <ItemsRepeater.ItemTemplate>
+                                                            <DataTemplate x:DataType="x:String">
+                                                                <TextBlock Text="{x:Bind}"
+                                                                           FontFamily="Consolas" FontSize="11"
+                                                                           TextWrapping="NoWrap"
+                                                                           Margin="0,1"/>
+                                                            </DataTemplate>
+                                                        </ItemsRepeater.ItemTemplate>
+                                                    </ItemsRepeater>
+                                                </ScrollViewer>
+                                            </Border>
+
+                                        </StackPanel>
                                     </Border>
 
-                                    <!-- Operation text -->
-                                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
-                                               Text="{x:Bind CurrentOperation, Mode=OneWay}"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               Margin="0,6,0,6"/>
-
-                                    <!-- Progress bar -->
-                                    <ProgressBar Grid.Row="2" Grid.ColumnSpan="2"
-                                                 Value="{x:Bind Progress, Mode=OneWay}"
-                                                 Maximum="100"
-                                                 IsIndeterminate="{x:Bind IsIndeterminate, Mode=OneWay}"/>
-
                                     <!-- Output path (when complete) -->
-                                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
-                                               Text="{x:Bind OutputPath, Mode=OneWay}"
+                                    <TextBlock Text="{x:Bind OutputPath, Mode=OneWay}"
                                                Style="{StaticResource CaptionTextBlockStyle}"
                                                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                                TextTrimming="CharacterEllipsis"
-                                               Margin="0,6,0,0"
                                                Visibility="{x:Bind HasOutputPath, Mode=OneWay}"/>
-                                </Grid>
+
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsRepeater.ItemTemplate>

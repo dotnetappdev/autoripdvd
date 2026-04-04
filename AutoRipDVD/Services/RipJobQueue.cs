@@ -40,6 +40,9 @@ public class RipJobQueue : IRipJobQueue
     private readonly INotificationService _notificationService;
     private readonly ISoundService _soundService;
     private readonly IDatabase _database;
+    private readonly IDiscAnalyzerService _discAnalyzer;
+    private readonly ITranscodePresetService _presets;
+    private readonly IIsoCreatorService _isoCreator;
 
     // Auto-rip enable/disable toggle (separate from settings so we can start/stop at runtime)
     private bool _autoRipActive;
@@ -59,7 +62,10 @@ public class RipJobQueue : IRipJobQueue
         ILogService logService,
         INotificationService notificationService,
         ISoundService soundService,
-        IDatabase database)
+        IDatabase database,
+        IDiscAnalyzerService discAnalyzer,
+        ITranscodePresetService presets,
+        IIsoCreatorService isoCreator)
     {
         _makeMkvService      = makeMkvService;
         _handBrakeService    = handBrakeService;
@@ -72,6 +78,9 @@ public class RipJobQueue : IRipJobQueue
         _notificationService = notificationService;
         _soundService        = soundService;
         _database            = database;
+        _discAnalyzer        = discAnalyzer;
+        _presets             = presets;
+        _isoCreator          = isoCreator;
 
         _autoRipActive = settings.Settings.AutoRip;
         _discDetection.DiscInserted += OnDiscInserted;
@@ -180,10 +189,27 @@ public class RipJobQueue : IRipJobQueue
         {
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
-            // Step 1: Scan disc
-            await UpdateStatusAsync(job, RipStatus.Detecting, "Scanning disc...");
+            // Step 1: Deep disc analysis (IFO parse + copy protection detection)
+            if (_settings.Settings.RunDiscAnalysisBeforeRip)
+            {
+                await UpdateStatusAsync(job, RipStatus.Detecting, "Analysing disc structure…");
+                var analysisProgress = new Progress<string>(msg => { job.CurrentOperation = msg; _ = UpdateJobAsync(job); });
+                var analysis = await _discAnalyzer.AnalyseDiscAsync(job.Disc, null, analysisProgress);
+
+                if (analysis.Protection.IsProtected)
+                    await _logService.LogAsync($"Protection detected: {analysis.Protection.ProtectionSummary}");
+
+                // Pre-populate titles from IFO if we got them
+                if (analysis.Titles.Count > 0)
+                    job.Titles = analysis.Titles;
+            }
+
+            // Step 2: Scan disc with MakeMKV (gets full stream details)
+            await UpdateStatusAsync(job, RipStatus.Detecting, "Scanning disc with MakeMKV…");
             var scanProgress = new Progress<string>(msg => { job.CurrentOperation = msg; _ = UpdateJobAsync(job); });
-            job.Titles = await _makeMkvService.ScanDiscAsync(job.Disc.DriveLetter, scanProgress);
+            var mkvTitles = await _makeMkvService.ScanDiscAsync(job.Disc.DriveLetter, scanProgress);
+            if (mkvTitles.Count > 0)
+                job.Titles = mkvTitles; // MakeMKV scan is more authoritative
 
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
@@ -269,8 +295,23 @@ public class RipJobQueue : IRipJobQueue
             // Rip
             await UpdateStatusAsync(job, RipStatus.Ripping, "Ripping disc...");
             await _soundService.PlayAsync(SoundEvent.RipStarted);
-            var ripProgress = new Progress<double>(p => { job.Progress = p * 0.7; _ = UpdateJobAsync(job); });
-            var ripOk = await _makeMkvService.RipTitlesAsync(job.Disc.DriveLetter, job.SelectedTitleIndices, tempPath, ripProgress);
+
+            var ripProgress = new Progress<double>(p =>
+            {
+                job.Progress = p * 0.7;
+                _ = UpdateJobAsync(job);
+            });
+
+            var statsProgress = new Progress<MakeMkvRipStats>(stats =>
+            {
+                job.RipStats         = stats;
+                job.CurrentOperation = BuildRipOperation(stats);
+                _ = UpdateJobAsync(job);
+            });
+
+            var ripOk = await _makeMkvService.RipTitlesAsync(
+                job.Disc.DriveLetter, job.SelectedTitleIndices, tempPath,
+                ripProgress, statsProgress, ct);
 
             if (!ripOk)
             {
@@ -282,8 +323,12 @@ public class RipJobQueue : IRipJobQueue
 
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
-            // Eject
-            if (_settings.Settings.EjectWhenComplete)
+            // ── ISO creation (before eject, disc still in drive) ──────────────
+            if (_settings.Settings.AutoCreateIso)
+                await CreateIsoForJobAsync(job, ct);
+
+            // Eject (after ISO is done so the disc is still accessible during ISO creation)
+            if (_settings.Settings.EjectWhenComplete && !_settings.Settings.CreateIsoInParallel)
             {
                 await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
                 await _logService.LogAsync($"Ejected {job.Disc.DriveLetter}");
@@ -312,7 +357,9 @@ public class RipJobQueue : IRipJobQueue
                         _ = UpdateJobAsync(job);
                     });
 
-                    await _handBrakeService.TranscodeAsync(mkv, outputPath, transcodeProgress, ct);
+                    var activePreset = _presets.GetDefault();
+                    await _handBrakeService.TranscodeWithPresetAsync(
+                        mkv, outputPath, activePreset, null, transcodeProgress, ct);
                     job.OutputPath = Path.GetDirectoryName(outputPath) ?? outRoot;
                 }
 
@@ -385,6 +432,66 @@ public class RipJobQueue : IRipJobQueue
         {
             return _fileNaming.GetMovieFilePath(meta, outputRoot, ext);
         }
+    }
+
+    // ── ISO creation helper ───────────────────────────────────────────────────
+
+    private async Task CreateIsoForJobAsync(RipJob job, CancellationToken ct)
+    {
+        var s = _settings.Settings;
+
+        // Determine ISO output path
+        var isoRoot = string.IsNullOrWhiteSpace(s.IsoOutputPath) ? s.OutputPath : s.IsoOutputPath;
+        Directory.CreateDirectory(isoRoot);
+
+        var discName = job.Metadata?.Title.IfEmpty(job.Disc.VolumeLabel)
+                       ?? job.Disc.VolumeLabel.IfEmpty("disc");
+        var safeTitle = string.Join("_", discName.Split(Path.GetInvalidFileNameChars()));
+        var isoFileName = $"{safeTitle}.iso";
+        var isoPath     = Path.Combine(isoRoot, isoFileName);
+
+        await UpdateStatusAsync(job, RipStatus.CreatingIso, $"Creating ISO image: {isoFileName}");
+
+        var isoProgress = new Progress<IsoProgress>(p =>
+        {
+            job.CurrentOperation = p.StatusMessage;
+            job.Progress         = p.PercentComplete;
+            _ = UpdateJobAsync(job);
+        });
+
+        var result = await _isoCreator.CreateIsoAsync(
+            job.Disc, isoPath, s.DefaultIsoMode, isoProgress, ct);
+
+        if (result.Success)
+        {
+            job.IsoPath = result.IsoPath;
+            await _logService.LogAsync($"ISO created: {result.FormattedSize} → {result.IsoPath}");
+            await _notificationService.SendAsync("ISO Created",
+                $"✓ {discName} ({result.FormattedSize})");
+        }
+        else
+        {
+            await _logService.LogAsync($"ISO creation failed: {result.ErrorMessage}");
+            // Non-fatal – rip can still continue
+        }
+
+        // Eject after ISO if that option is set
+        if (s.EjectAfterIso && result.Success)
+        {
+            await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
+            await _soundService.PlayAsync(SoundEvent.DiscEjected);
+        }
+    }
+
+    // ── Stats helpers ─────────────────────────────────────────────────────────
+
+    private static string BuildRipOperation(MakeMkvRipStats stats)
+    {
+        if (stats.OverallProgressValue > 0)
+            return $"{stats.OverallProgressLabel} ({stats.OverallProgressValue:F0}%)";
+        if (!string.IsNullOrEmpty(stats.TitleProgressLabel))
+            return stats.TitleProgressLabel;
+        return "Ripping disc…";
     }
 
     // ── Status helpers ────────────────────────────────────────────────────────
