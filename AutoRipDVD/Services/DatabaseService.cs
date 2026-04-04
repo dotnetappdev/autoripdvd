@@ -11,24 +11,30 @@ public interface IDatabase
     SettingsRepository Settings { get; }
     JobRepository Jobs { get; }
     MatchHistoryRepository MatchHistory { get; }
+    FileRenameRepository FileRenames { get; }
+    string DatabasePath { get; }
 }
 
 public class DatabaseService : IDatabase
 {
     private readonly string _connectionString;
+    private readonly string _dbPath;
 
     public SettingsRepository   Settings     { get; }
     public JobRepository        Jobs         { get; }
     public MatchHistoryRepository MatchHistory { get; }
+    public FileRenameRepository FileRenames { get; }
 
     public DatabaseService()
     {
         var dbPath = DatabaseInitializer.GetDefaultDbPath();
+        _dbPath = dbPath;
         _connectionString = DatabaseInitializer.BuildConnectionString(dbPath);
 
         Settings     = new SettingsRepository(_connectionString);
         Jobs         = new JobRepository(_connectionString);
         MatchHistory = new MatchHistoryRepository(_connectionString);
+        FileRenames  = new FileRenameRepository(_connectionString);
     }
 
     public async Task InitializeAsync()
@@ -43,4 +49,7 @@ public class DatabaseService : IDatabase
         await connection.OpenAsync();
         return connection;
     }
+
+    /// <summary>Path to the SQLite file used by this instance.</summary>
+    public string DatabasePath => _dbPath;
 }

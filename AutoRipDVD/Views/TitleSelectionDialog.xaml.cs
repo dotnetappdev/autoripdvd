@@ -17,60 +17,52 @@ public sealed partial class TitleSelectionDialog : ContentDialog
         InitializeComponent();
     }
 
+    // ── Tree selection → right-panel info update ──────────────────────────────
+
+    private void DiscTreeView_SelectionChanged(TreeView sender, TreeViewSelectionChangedEventArgs args)
+    {
+        ViewModel.SelectedNode = DiscTreeView.SelectedItem as DiscTreeNode;
+    }
+
+    // ── x:Bind function helpers ───────────────────────────────────────────────
+
     private string GetMetadataMessage(MediaMetadata? metadata)
     {
         if (metadata == null) return string.Empty;
-        
         return metadata.MediaType == MediaType.TVShow
-            ? $"{metadata.Title} - Season {metadata.Season}"
+            ? $"{metadata.Title} – Season {metadata.Season}"
             : $"{metadata.Title} ({metadata.Year})";
     }
 }
 
-// Converter for Count > 0 to bool
+// ── Value converters ──────────────────────────────────────────────────────────
+
+/// <summary>Converts int > 0 to true (used to enable the "Start Ripping" button).</summary>
 public class CountToBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if (value is int count)
-            return count > 0;
-        return false;
-    }
+        => value is int count && count > 0;
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotImplementedException();
 }
 
-// Converter for null to bool
+/// <summary>Converts non-null to true (used for InfoBar.IsOpen).</summary>
 public class NullToBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        return value != null;
-    }
+        => value != null;
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotImplementedException();
 }
 
-// Converter for inverse bool
+/// <summary>Inverts a bool (used for IsEnabled on controls that should be disabled while scanning).</summary>
 public class InverseBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language)
-    {
-        if (value is bool b)
-            return !b;
-        return true;
-    }
+        => value is bool b ? !b : true;
 
     public object ConvertBack(object value, Type targetType, object parameter, string language)
-    {
-        if (value is bool b)
-            return !b;
-        return false;
-    }
+        => value is bool b ? !b : false;
 }

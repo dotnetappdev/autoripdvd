@@ -42,14 +42,73 @@
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="Output Folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                        <TextBox Text="{x:Bind ViewModel.OutputBasePath, Mode=TwoWay}"
-                                 PlaceholderText="D:\Media"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{x:Bind ViewModel.OutputBasePath, Mode=TwoWay}"
+                                     PlaceholderText="D:\\Media"/>
+                            <Button Grid.Column="1" Content="..." Tag="OutputBase" Click="BrowseFolder_Click"/>
+                        </Grid>
                     </StackPanel>
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="Temporary Folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
-                        <TextBox Text="{x:Bind ViewModel.TempPath, Mode=TwoWay}"
-                                 PlaceholderText="%TEMP%\AutoRipDVD"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{x:Bind ViewModel.TempPath, Mode=TwoWay}"
+                                     PlaceholderText="%TEMP%\\AutoRipDVD"/>
+                            <Button Grid.Column="1" Content="..." Tag="TempPath" Click="BrowseFolder_Click"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Database file" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <TextBox Text="{x:Bind ViewModel.DatabasePath, Mode=OneWay}" IsReadOnly="True"/>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- Per-media output folders -->
+            <Expander Header="Per-Media Output Folders (optional)" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <StackPanel Spacing="12" Padding="0,12,0,0">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Movies folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{x:Bind ViewModel.MoviesOutputPath, Mode=TwoWay}"/>
+                            <Button Grid.Column="1" Content="..." Tag="MoviesOutputPath" Click="BrowseFolder_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="TV Shows folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{x:Bind ViewModel.TvOutputPath, Mode=TwoWay}"/>
+                            <Button Grid.Column="1" Content="..." Tag="TvOutputPath" Click="BrowseFolder_Click"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Music folder" Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{x:Bind ViewModel.MusicOutputPath, Mode=TwoWay}"/>
+                            <Button Grid.Column="1" Content="..." Tag="MusicOutputPath" Click="BrowseFolder_Click"/>
+                        </Grid>
                     </StackPanel>
                 </StackPanel>
             </Expander>
@@ -423,6 +482,10 @@
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            Style="{StaticResource CaptionTextBlockStyle}"/>
             </Grid>
+
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                <Button Content="About" Click="AboutButton_Click"/>
+            </StackPanel>
 
         </StackPanel>
     </ScrollViewer>

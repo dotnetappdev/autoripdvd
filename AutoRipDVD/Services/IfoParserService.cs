@@ -300,8 +300,8 @@ public class IfoParserService : IIfoParserService
             {
                 TitleNumber  = i + 1,
                 VtsNumber    = vtsNum,
-                AngleCount   = Math.Max(1, angles),
-                ChapterCount = Math.Max(1, chapters)
+                AngleCount   = Math.Max(1, (int)angles),
+                ChapterCount = Math.Max(1, (int)chapters)
             });
         }
         return list;

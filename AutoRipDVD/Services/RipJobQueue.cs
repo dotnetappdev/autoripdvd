@@ -347,8 +347,26 @@ public class RipJobQueue : IRipJobQueue
                 foreach (var mkv in mkvFiles)
                 {
                     if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
-
                     var outputPath = GetOutputPath(job, mkv, fileIdx++, outRoot);
+                    // Enqueue rename record so we keep track of files created and can rename later if needed
+                    string recId = Guid.NewGuid().ToString();
+                    try
+                    {
+                        var rec = new AutoRipDVD.Database.Repositories.FileRenameRecord(
+                            recId,
+                            job.Id.ToString(),
+                            mkv,
+                            outputPath,
+                            false,
+                            DateTime.UtcNow,
+                            null
+                        );
+                        await _database.FileRenames.AddAsync(rec);
+                    }
+                    catch
+                    {
+                        // don't break ripping on DB failures
+                    }
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
                     var transcodeProgress = new Progress<double>(p =>
@@ -361,6 +379,8 @@ public class RipJobQueue : IRipJobQueue
                     await _handBrakeService.TranscodeWithPresetAsync(
                         mkv, outputPath, activePreset, null, transcodeProgress, ct);
                     job.OutputPath = Path.GetDirectoryName(outputPath) ?? outRoot;
+                    // Mark as processed after transcode/move
+                    try { await _database.FileRenames.MarkProcessedAsync(recId); } catch { }
                 }
 
                 Directory.Delete(tempPath, true);
@@ -375,8 +395,28 @@ public class RipJobQueue : IRipJobQueue
                 {
                     var outputPath = GetOutputPath(job, mkv, fileIdx++, outRoot);
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                    // Enqueue rename record before moving
+                    string recId = Guid.NewGuid().ToString();
+                    try
+                    {
+                        var rec = new AutoRipDVD.Database.Repositories.FileRenameRecord(
+                            recId,
+                            job.Id.ToString(),
+                            mkv,
+                            outputPath,
+                            false,
+                            DateTime.UtcNow,
+                            null
+                        );
+                        await _database.FileRenames.AddAsync(rec);
+                    }
+                    catch { }
+
                     File.Move(mkv, outputPath, overwrite: true);
                     job.OutputPath = Path.GetDirectoryName(outputPath) ?? outRoot;
+
+                    // Mark as processed after move
+                    try { await _database.FileRenames.MarkProcessedAsync(recId); } catch { }
                 }
 
                 Directory.Delete(tempPath, true);
@@ -531,7 +571,11 @@ public class RipJobQueue : IRipJobQueue
                 DiscLabel:          job.Disc.VolumeLabel,
                 DiscType:           job.Disc.DiscType.ToString(),
                 DriveLetter:        job.Disc.DriveLetter,
-                MediaTitle:         job.Metadata?.Title.IfEmpty(job.Metadata?.SeriesName),
+                MediaTitle:         job.Metadata == null
+                                        ? null
+                                        : (string.IsNullOrWhiteSpace(job.Metadata.Title)
+                                            ? (string.IsNullOrWhiteSpace(job.Metadata.SeriesName) ? null : job.Metadata.SeriesName)
+                                            : job.Metadata.Title),
                 MediaType:          job.Metadata?.Type.ToString(),
                 Season:             job.Metadata?.SeasonNumber,
                 Episode:            job.Metadata?.EpisodeNumber,

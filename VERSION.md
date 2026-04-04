@@ -2,6 +2,83 @@
 
 ---
 
+## Version 2.1.0 (April 2026) — Installer & MakeMKV-Style UI
+
+### New: Windows Installer (Inno Setup)
+
+- **`installer/AutoRipDVD-Setup.iss`** — full Inno Setup 6 script producing
+  `AutoRipDVD-Setup-2.1.0.exe`
+- **Install scope selection** — first page of the installer lets the user choose:
+  - **All users** (elevated / admin) — installs to `%ProgramFiles%\AutoRip DVD`,
+    data directory `%PROGRAMDATA%\AutoRipDVD\`
+  - **Current user only** (no elevation needed) — installs to
+    `%LOCALAPPDATA%\Programs\AutoRip DVD`, data directory `%APPDATA%\AutoRipDVD\`
+- **Prerequisite auto-install** — checks for .NET 10 Desktop Runtime and
+  Windows App SDK 1.5; downloads and installs them silently if missing
+- **AUTORIP_DATA_DIR environment variable** written by the installer (machine scope for
+  all-users, user scope for per-user) so the app always finds the right database
+- **Clean uninstall** — removes shortcuts, registry keys, env var; data folder is
+  intentionally preserved (displayed in a message box at end of uninstall)
+- **Optional desktop shortcut** (unchecked by default, standard installer behaviour)
+- `WM_SETTINGCHANGE` broadcast after install so running apps pick up the new env var
+  without requiring a restart
+
+### New: MSIX / Windows Store Packaging
+
+- **`installer/package-msix.ps1`** — PowerShell script that:
+  1. Runs `dotnet publish` into a staging folder
+  2. Generates a `Package.appxmanifest` template if one is absent
+  3. Uses the Windows SDK `makeappx.exe` to pack the MSIX
+  4. Signs the package with a provided `.pfx` cert or a temporary self-signed cert
+  5. Optionally submits to Windows Store via `winappstore-cli`
+- **`installer/Package.appxmanifest`** (generated on first run) — Store manifest with
+  correct package identity, dependencies on .NET 10 and Windows App SDK 1.5,
+  `removableStorage` restricted capability for optical drive access
+- Separate from Inno Setup: the `.exe` installer is for direct distribution, the
+  `.msix` is for Store / `winget` / enterprise deployment
+
+### New: MakeMKV-Style Disc Tree
+
+- **`DiscTreeNodes.cs`** — tree node hierarchy:
+  `DiscRootNode → TitleTreeNode → ChaptersNode / VideoTrackNode / AudioTrackNode / SubtitleTrackNode`
+- **Two-panel title selection dialog** (1060 px wide):
+  - Left: `TreeView` with "Type / Description" column headers; each row has a
+    checkbox, icon, type label, and description; all nodes auto-expanded on scan
+  - Right: Output folder (read-only, from Settings), Properties (editable title name,
+    Profile selector), Info text area (selected node details), selection badge
+- **Per-track include/exclude** — audio and subtitle track checkboxes are independent;
+  unchecking a title automatically unchecks all its child tracks
+- **Right-panel info** — every node type provides a `BuildInfoText()` that fills the
+  info area: title information (name, source file, duration, size, chapters, segment
+  map, output filename), audio track details, subtitle track details, video codec info
+- **Selected node name editing** — the Name field in Properties is editable for title
+  nodes; changes write back to `TitleInfo.Name` for output file naming
+
+### New: Disc-Detection Gating
+
+- `MainViewModel.HasDiscInserted` — observable bool updated live via
+  `IDiscDetectionService.DiscInserted` / `DiscEjected` events and on startup
+- `MainViewModel.DetectedDriveLetter` — drive letter of the first detected disc
+- Dashboard **"Open Disc"** and **"Disc Info"** buttons bound to `HasDiscInserted`;
+  they are **disabled (greyed out) until a DVD or Blu-ray is detected** and re-enable
+  automatically on ejection/re-insertion
+- "Open Disc" pre-populates the drive letter from `DetectedDriveLetter` and
+  auto-triggers a scan before opening the Title Selection dialog
+
+### Database path resolution (`DatabaseInitializer`)
+
+- `GetDefaultDbPath()` now checks `AUTORIP_DATA_DIR` (machine scope first, then user scope)
+  before falling back to `%APPDATA%\AutoRipDVD` — enabling the installer to direct
+  all-users installs to `%PROGRAMDATA%\AutoRipDVD` with no code changes
+- `EnvironmentVariableTarget` calls are wrapped in a try/catch for non-Windows
+  compatibility
+
+### Version bump
+
+- `AutoRipDVD.csproj` — `<Version>2.1.0</Version>`, `<AssemblyVersion>2.1.0.0</AssemblyVersion>`
+
+---
+
 ## Version 2.0.0 (April 2026) — Major Feature Release
 
 ### New: Disc Analysis Engine

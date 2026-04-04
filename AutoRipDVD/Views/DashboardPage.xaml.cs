@@ -110,24 +110,21 @@ public sealed partial class DashboardPage : Page
 
     private async void OpenDiscButton_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
-        var discDetection = App.Host.Services.GetRequiredService<IDiscDetectionService>();
-        var discs = await discDetection.GetInsertedDiscsAsync();
-
-        if (discs.Count == 0)
+        // Use the drive letter already detected by MainViewModel (button is disabled when empty)
+        var driveLetter = ViewModel.DetectedDriveLetter;
+        if (string.IsNullOrEmpty(driveLetter))
         {
             await ShowInfoDialogAsync("No Disc Found", "Please insert a DVD or Blu-ray disc.");
             return;
         }
 
-        var disc = discs.First(d => d.DiscType is DiscType.DVD or DiscType.BluRay)
-                   ?? discs.First();
-
         var vm = App.Host.Services.GetRequiredService<TitleSelectionViewModel>();
-        vm.DriveLetter = disc.DriveLetter;
+        vm.DriveLetter = driveLetter;
 
+        // Show dialog; scan runs inside the dialog when user clicks "Scan Disc"
         var dialog = new TitleSelectionDialog(vm) { XamlRoot = XamlRoot };
 
-        // Pre-scan
+        // Auto-trigger scan so the tree is ready when the dialog opens
         await vm.ScanDiscCommand.ExecuteAsync(null);
 
         var result = await dialog.ShowAsync();

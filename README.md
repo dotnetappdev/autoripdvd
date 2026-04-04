@@ -1,13 +1,14 @@
 # AutoRip DVD  —  Professional DVD & Blu-ray Ripping Suite
 
-**Version 2.0.0** · [Changelog](VERSION.md) · [Quick Start](QUICKSTART.md) · [Full Feature List](FEATURES.md) · [Deployment Guide](DEPLOYMENT.md)
+**Version 2.1.0** · [Changelog](VERSION.md) · [Quick Start](QUICKSTART.md) · [Full Feature List](FEATURES.md) · [Deployment Guide](DEPLOYMENT.md)
 
 A professional, open-source Windows application that combines the best of **MakeMKV**, **DVDFab**, **AnyDVD HD**, **DVD Shrink**, and **HandBrake** into a single modern WinUI 3 interface.  Insert a disc — AutoRip handles everything automatically, or let you take full control of every track, subtitle, language, and encoding detail.
 
-![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
 ![WinUI 3](https://img.shields.io/badge/WinUI-3.0-0078D4?logo=microsoft)
 ![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Installer](https://img.shields.io/badge/installer-Inno%20Setup-blue)
 
 ---
 
@@ -56,12 +57,34 @@ A professional, open-source Windows application that combines the best of **Make
 | Track Picker | Per-track audio/subtitle checkbox + size | DVD Shrink |
 | Track Picker | Live video preview with filmstrip | DVD Shrink |
 | Track Picker | Subtitle overlay preview per track | DVD Shrink |
+| Disc Tree | Hierarchical title/track tree with checkboxes | MakeMKV |
+| Disc Tree | Right-panel Info + editable name field | MakeMKV |
+| Disc Tree | Disc-detection gating on toolbar buttons | AnyDVD HD |
+| Installer | Inno Setup .exe with per-user / all-users choice | Standard Windows apps |
+| Installer | MSIX packaging script for Windows Store | Microsoft Store |
 | Languages | 40-language picker with flag emoji | AnyDVD HD |
 | Languages | Preferred language auto-apply | AnyDVD HD |
 | Media Info | ffprobe stream info (HDR, Atmos, DTS:X) | MediaInfo |
 | Subtitles | SRT extraction, VOBsub→SRT OCR | SubRip |
 | Subtitles | MKV subtitle mux via mkvmerge | MKVToolNix |
 | Metadata | TMDB, OMDb, TVDB, AniDB | FileBot |
+
+---
+
+## What's New in v2.1
+
+### MakeMKV-Style Disc Tree & Track Selection
+- **Hierarchical disc tree** — the Title Selection dialog now shows a full tree: Disc root → Titles → Chapters / Video / Audio tracks / Subtitle tracks, exactly like MakeMKV's left panel
+- **Per-track checkboxes** — include or exclude individual audio and subtitle streams before ripping; unchecking a title propagates to all its child tracks automatically
+- **Two-column layout** — "Type" and "Description" column headers with proportional alignment across all tree levels
+- **Right-panel Info** — clicking any tree node (title, audio track, subtitle, video stream) populates the Properties name field and a detailed Info text box on the right, mirroring MakeMKV's interface
+- **Disc-detection gating** — the "Open Disc" and "Disc Info" toolbar buttons on the Dashboard are **disabled** until a DVD or Blu-ray disc is actually detected in a drive; they enable automatically when a disc is inserted and disable again on ejection
+- **Auto-scan on Open** — when a disc is already in the drive, clicking "Open Disc" pre-scans it before showing the dialog so the tree is immediately populated
+
+### Installer
+- **Inno Setup Windows installer** (`installer/AutoRipDVD-Setup.iss`) with per-user and all-users install modes
+- **MSIX packaging script** (`installer/package-msix.ps1`) for Windows Store and enterprise deployment
+- Database location automatically determined from install scope (see [Database Location](#database-location) below)
 
 ---
 
@@ -136,21 +159,109 @@ A professional, open-source Windows application that combines the best of **Make
 
 ## Installation
 
-### 1. Build from Source
+### Option A — Windows Installer (Recommended)
+
+Download `AutoRipDVD-Setup-2.1.0.exe` from the [Releases page](../../releases) and run it.
+
+The installer will:
+1. Prompt you to choose **Install for all users** (requires admin) or **Current user only**
+2. Automatically download and install **.NET 10 Desktop Runtime** and **Windows App SDK 1.5** if missing
+3. Create a Start Menu shortcut and optional Desktop shortcut
+4. Place your database in the correct location based on your choice (see [Database Location](#database-location))
+
+```
+AutoRipDVD-Setup-2.1.0.exe   — standard Inno Setup installer
+```
+
+### Option B — Windows Store / MSIX
+
+For enterprise or Microsoft Store distribution, use the MSIX packaging script:
+
 ```powershell
-git clone https://github.com/dotnetappdev/autoripdvd.git
-cd autoripdvd
+# 1. Publish the application first
+dotnet publish AutoRipDVD\AutoRipDVD.csproj -c Release -r win-x64 `
+    --self-contained false -o installer\publish-msix
+
+# 2. Build the MSIX (test-signed, for local install)
+.\installer\package-msix.ps1
+
+# 3. Build production-signed MSIX (for Store submission)
+.\installer\package-msix.ps1 -CertPath "certs\MyStore.pfx" -CertPassword "s3cr3t"
+
+# 4. Install locally (enable sideloading first in Windows Settings)
+Add-AppxPackage .\installer\dist\AutoRipDVD-2.1.0-x64.msix
+```
+
+> **Note:** The Windows Store requires a separate publisher certificate from Microsoft Partner Center.  
+> The Inno Setup installer (`.exe`) and the MSIX are **complementary** — use the `.exe` for direct downloads and the `.msix` for Store / `winget` submission.
+
+### Option C — Build from Source
+
+```powershell
+git clone https://github.com/dotnetappdev/autoripdvd2.git
+cd autoripdvd2
 dotnet build AutoRipDVD.sln -c Release
-cd AutoRipDVD\bin\Release\net8.0-windows10.0.19041.0\win-x64
+cd AutoRipDVD\bin\Release\net10.0-windows10.0.19041.0\win-x64
 .\AutoRipDVD.exe
 ```
 
-### 2. Install Optional Tools (recommended)
+### Building the Installer from Source
 
-**ffmpeg** (enables preview thumbnails, subtitle extraction, media analysis):
+```powershell
+# 1. Publish to the expected location
+dotnet publish AutoRipDVD\AutoRipDVD.csproj -c Release -r win-x64 `
+    --self-contained false -o installer\publish
+
+# 2. (Optional) Add assets
+#    installer\assets\app.ico        — 256×256 application icon
+#    installer\assets\wizard.bmp     — 164×314 Inno Setup wizard banner
+
+# 3. Open in Inno Setup 6 and click Build → Compile
+#    Output: installer\dist\AutoRipDVD-Setup-2.1.0.exe
+#    Download Inno Setup: https://jrsoftware.org/isdl.php
+```
+
+---
+
+## Database Location
+
+AutoRip DVD stores its settings and rip history in a SQLite database.  The location
+depends on how the app was installed — exactly the same convention used by applications
+like VLC, Kodi, and MPC-HC:
+
+| Install type | Database path |
+|---|---|
+| **All users** (installer, admin prompt accepted) | `C:\ProgramData\AutoRipDVD\autorip.db` |
+| **Current user** (installer, no admin required) | `C:\Users\<you>\AppData\Roaming\AutoRipDVD\autorip.db` |
+| **Standalone / built from source** | `C:\Users\<you>\AppData\Roaming\AutoRipDVD\autorip.db` |
+| **MSIX / Windows Store** | `C:\Users\<you>\AppData\Local\Packages\SASProducts.AutoRipDVD\LocalState\autorip.db` |
+
+The installer writes the `AUTORIP_DATA_DIR` environment variable (machine scope for  
+all-users installs, user scope for per-user installs) which the app reads at startup to  
+find the correct folder.  Uninstalling removes the variable but **leaves the data folder intact**
+so you don't lose your history — delete it manually if needed.
+
+---
+
+## Development notes
+
+- **Database path exposed:** The app now exposes the SQLite file location via `IDatabase.DatabasePath` and the Settings UI displays this path. When adding code that needs the DB path, resolve `IDatabase` from DI and read `DatabasePath`.
+- **Folder picker (WinUI3):** Initialize `FolderPicker` with a window handle. Use `WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow)` and `WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd)`.
+- **DI helper methods:** If you see `'GetRequiredService'` missing, add `using Microsoft.Extensions.DependencyInjection;` where `IServiceProvider` is used.
+- **XAML compiler:** The WinUI XAML tool can fail if Windows App SDK tooling doesn't match the target. Ensure the Windows App SDK is installed and the project TFMs match the SDK version when building.
+
+
+### Install Optional Tools
+
+**MakeMKV** (required for ripping):
+```
+https://www.makemkv.com/download/
+```
+
+**ffmpeg** (preview thumbnails, subtitle extraction, media analysis):
 ```powershell
 winget install Gyan.FFmpeg
-# Default install: C:\Program Files\ffmpeg\bin\ffmpeg.exe
+# Installs to: C:\Program Files\ffmpeg\bin\ffmpeg.exe
 ```
 
 **MKVToolNix** (subtitle muxing):
@@ -158,17 +269,17 @@ winget install Gyan.FFmpeg
 winget install MKVToolNix.MKVToolNix
 ```
 
-**Tesseract** (VOBsub OCR):
+**Tesseract** (VOBsub → SRT OCR):
 ```powershell
 winget install UB-Mannheim.TesseractOCR
 ```
 
-### 3. First-Run Setup
+### First-Run Setup
 1. Launch AutoRip DVD
 2. Open **Settings → Paths** and verify/set all tool paths
 3. Open **Settings → API Keys** and add your OMDb key ([free at omdbapi.com](https://www.omdbapi.com/apikey.aspx))
 4. Open **Settings → Languages** to set your preferred subtitle and audio languages
-5. Insert a disc to test detection
+5. Insert a disc — the "Open Disc" and "Disc Info" buttons activate automatically
 
 ---
 

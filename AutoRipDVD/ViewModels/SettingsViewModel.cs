@@ -9,6 +9,8 @@ namespace AutoRipDVD.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
+    private readonly IDatabase _database;
+    private readonly ToolDetectionService _toolDetection;
     private readonly ISettingsService _settingsService;
     private readonly IHandBrakeService _handBrakeService;
     private AppSettings _originalSettings = new();
@@ -20,6 +22,18 @@ public partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
     private string _handBrakePath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _moviesOutputPath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _tvOutputPath = string.Empty;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
+    private string _musicOutputPath = string.Empty;
+
+    [ObservableProperty]
+    private string _databasePath = string.Empty;
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChanges))]
     private string _outputBasePath = string.Empty;
@@ -261,11 +275,13 @@ public partial class SettingsViewModel : ObservableObject
 
     private readonly ISoundService _soundService;
 
-    public SettingsViewModel(ISettingsService settingsService, IHandBrakeService handBrakeService, ISoundService soundService)
+    public SettingsViewModel(ISettingsService settingsService, IHandBrakeService handBrakeService, ISoundService soundService, IDatabase database, ToolDetectionService toolDetection)
     {
         _settingsService = settingsService;
         _handBrakeService = handBrakeService;
         _soundService = soundService;
+        _database = database;
+        _toolDetection = toolDetection;
         LoadSettings();
         _ = LoadPresetsAsync();
     }
@@ -288,11 +304,23 @@ public partial class SettingsViewModel : ObservableObject
     private void LoadSettings()
     {
         var s = _settingsService.Settings;
+        // Show DB path from database service
+        try { DatabasePath = _database.DatabasePath; } catch { DatabasePath = string.Empty; }
         _originalSettings = CloneSettings(s);
 
         MakeMkvPath            = s.MakeMkvPath;
+        // If no explicit paths are configured, try best-effort detection
+        if (string.IsNullOrWhiteSpace(MakeMkvPath))
+            MakeMkvPath = _toolDetection.DetectMakeMkvPath() ?? MakeMkvPath;
+
         HandBrakePath          = s.HandBrakePath;
+        if (string.IsNullOrWhiteSpace(HandBrakePath))
+            HandBrakePath = _toolDetection.DetectHandBrakePath() ?? HandBrakePath;
+
         OutputBasePath         = s.OutputPath;
+        MoviesOutputPath       = s.MoviesOutputPath;
+        TvOutputPath           = s.TvOutputPath;
+        MusicOutputPath        = s.MusicOutputPath;
         TempPath               = s.TempPath;
         OmdbApiKey             = s.OmdbApiKey;
         TmdbApiKey             = s.TmdbApiKey;
@@ -357,6 +385,9 @@ public partial class SettingsViewModel : ObservableObject
 
         s.MakeMkvPath             = MakeMkvPath;
         s.HandBrakePath           = HandBrakePath;
+        s.MoviesOutputPath        = MoviesOutputPath;
+        s.TvOutputPath            = TvOutputPath;
+        s.MusicOutputPath         = MusicOutputPath;
         s.OutputPath              = OutputBasePath;
         s.TempPath                = TempPath;
         s.OmdbApiKey              = OmdbApiKey;

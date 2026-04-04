@@ -264,7 +264,7 @@ public class TitleInfo
 }
 
 
-public class AppSettings
+public partial class AppSettings
 {
     // Paths
     public string MakeMkvPath { get; set; } = @"C:\Program Files (x86)\MakeMKV\makemkvcon64.exe";
@@ -275,6 +275,10 @@ public class AppSettings
     public string MkvExtractPath { get; set; } = @"C:\Program Files\MKVToolNix\mkvextract.exe";
     public string TesseractPath { get; set; } = @"C:\Program Files\Tesseract-OCR\tesseract.exe";
     public string OutputPath { get; set; } = @"D:\Ripped";
+    // Per-media output folders (optional). If empty, `OutputPath` is used.
+    public string MoviesOutputPath { get; set; } = string.Empty;
+    public string TvOutputPath     { get; set; } = string.Empty;
+    public string MusicOutputPath  { get; set; } = string.Empty;
     public string TempPath { get; set; } = Path.Combine(Path.GetTempPath(), "AutoRipDVD");
     public string MakeMkvDataDirectory { get; set; } = @"C:\Users\{USER}\.MakeMKV";
     public string LogPath { get; set; } = "";
@@ -438,5 +442,7 @@ public class AppSettings
     public string EjectionSoundPath   { get; set; } = string.Empty;
     public string ErrorSoundPath      { get; set; } = string.Empty;
     public string RipStartSoundPath   { get; set; } = string.Empty;
+    // Optional database file path (readonly in UI); shown for diagnostics.
+    public string DatabasePath { get; set; } = string.Empty;
 }
 

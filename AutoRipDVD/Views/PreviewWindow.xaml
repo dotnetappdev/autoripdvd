@@ -1,0 +1,34 @@
+<Page
+    x:Class="AutoRipDVD.Views.PreviewWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AutoRipDVD.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
+    mc:Ignorable="d">
+
+    <Grid Padding="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="120" />
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="TitleText" FontSize="18" FontWeight="Bold" Text="Preview"/>
+
+        <Border Grid.Row="1" Margin="0,8,0,8" Background="Black">
+            <controls:MediaPlayerElement x:Name="PreviewPlayer" AreTransportControlsEnabled="True" AutoPlay="False" Stretch="Uniform" />
+        </Border>
+
+        <ListView Grid.Row="2" x:Name="ThumbnailList" SelectionMode="Single" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="4">
+                        <Image Width="160" Height="90" Source="{Binding}" Stretch="UniformToFill"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

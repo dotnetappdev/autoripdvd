@@ -129,6 +129,11 @@ public class SettingsService : ISettingsService
             s.ErrorSoundPath         = Get("ErrorSoundPath",         string.Empty);
             s.RipStartSoundPath      = Get("RipStartSoundPath",      string.Empty);
 
+            // Per-media output folders
+            s.MoviesOutputPath       = Get("MoviesOutputPath",       string.Empty);
+            s.TvOutputPath           = Get("TvOutputPath",           string.Empty);
+            s.MusicOutputPath        = Get("MusicOutputPath",        string.Empty);
+
             // UI
             s.Theme             = Get("Theme",             "System");
             s.ShowAdvancedOptions = GetBool("ShowAdvancedOptions", false);
@@ -236,6 +241,11 @@ public class SettingsService : ISettingsService
             ["EjectionSoundPath"]     = s.EjectionSoundPath,
             ["ErrorSoundPath"]        = s.ErrorSoundPath,
             ["RipStartSoundPath"]     = s.RipStartSoundPath,
+
+            // Per-media output folders
+            ["MoviesOutputPath"]      = s.MoviesOutputPath,
+            ["TvOutputPath"]          = s.TvOutputPath,
+            ["MusicOutputPath"]       = s.MusicOutputPath,
 
             // UI
             ["Theme"]               = s.Theme,

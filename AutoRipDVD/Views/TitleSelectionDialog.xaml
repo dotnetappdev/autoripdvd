@@ -5,147 +5,369 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:AutoRipDVD.Views"
     xmlns:vm="using:AutoRipDVD.ViewModels"
-    Title="Manual Title Selection"
+    Title="Disc Title Selection"
     PrimaryButtonText="Start Ripping"
     CloseButtonText="Cancel"
     DefaultButton="Primary"
-    IsPrimaryButtonEnabled="{x:Bind ViewModel.SelectedCount, Mode=OneWay, Converter={StaticResource CountToBoolConverter}}"
-    Style="{StaticResource DefaultContentDialogStyle}">
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.SelectedTitleCount, Mode=OneWay, Converter={StaticResource CountToBoolConverter}}">
 
     <ContentDialog.Resources>
-        <local:CountToBoolConverter x:Key="CountToBoolConverter"/>
+        <!-- Override default max width to accommodate the two-panel layout -->
+        <x:Double x:Key="ContentDialogMaxWidth">1200</x:Double>
+        <x:Double x:Key="ContentDialogMinWidth">1060</x:Double>
+
+        <local:CountToBoolConverter  x:Key="CountToBoolConverter"/>
+        <local:NullToBoolConverter   x:Key="NullToBoolConverter"/>
+        <local:InverseBoolConverter  x:Key="InverseBoolConverter"/>
     </ContentDialog.Resources>
 
-    <Grid Width="800" Height="600">
+    <Grid Width="1060" MinHeight="640">
         <Grid.RowDefinitions>
+            <!-- Scan bar -->
             <RowDefinition Height="Auto"/>
+            <!-- Metadata info bar -->
             <RowDefinition Height="Auto"/>
+            <!-- Filter toolbar (post-scan) -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main two-panel area -->
             <RowDefinition Height="*"/>
+            <!-- Status bar -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Scan Section -->
-        <StackPanel Grid.Row="0" Spacing="12" Padding="0,0,0,16">
-            <Grid ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+        <!-- ── Row 0 : Scan controls ──────────────────────────────────────── -->
+        <Grid Grid.Row="0" ColumnSpacing="8" Padding="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="Drive:" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" 
-                         Text="{x:Bind ViewModel.DriveLetter, Mode=TwoWay}"
-                         PlaceholderText="E:"
-                         MaxLength="2"
-                         IsEnabled="{x:Bind ViewModel.IsScanning, Mode=OneWay, Converter={StaticResource InverseBoolConverter}}"/>
-                
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" 
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                    <ProgressRing IsActive="{x:Bind ViewModel.IsScanning, Mode=OneWay}" 
-                                  Width="16" Height="16"/>
+            <TextBlock Grid.Column="0" Text="Drive:" VerticalAlignment="Center"/>
+            <TextBox   Grid.Column="1"
+                       Text="{x:Bind ViewModel.DriveLetter, Mode=TwoWay}"
+                       PlaceholderText="E:"
+                       MaxLength="2"
+                       IsEnabled="{x:Bind ViewModel.IsScanning, Mode=OneWay,
+                                   Converter={StaticResource InverseBoolConverter}}"/>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsScanning, Mode=OneWay}"
+                              Width="16" Height="16"/>
+                <TextBlock Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Button Grid.Column="3"
+                    Content="Scan Disc"
+                    Command="{x:Bind ViewModel.ScanDiscCommand}"
+                    Style="{StaticResource AccentButtonStyle}"/>
+        </Grid>
+
+        <!-- ── Row 1 : Metadata detection bar ────────────────────────────── -->
+        <InfoBar Grid.Row="1"
+                 IsOpen="{x:Bind ViewModel.DetectedMetadata, Mode=OneWay,
+                          Converter={StaticResource NullToBoolConverter}}"
+                 Severity="Success"
+                 Title="Metadata Detected"
+                 Message="{x:Bind GetMetadataMessage(ViewModel.DetectedMetadata), Mode=OneWay}"
+                 IsClosable="False"
+                 Margin="0,0,0,8"/>
+
+        <!-- ── Row 2 : Filter toolbar ─────────────────────────────────────── -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Padding="0,0,0,10"
+                    Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
+            <CheckBox Content="Auto-filter extras / bonus content"
+                      IsChecked="{x:Bind ViewModel.AutoFilterEnabled, Mode=TwoWay}"
+                      ToolTipService.ToolTip="Automatically select main-feature titles"/>
+            <Button Content="Apply Filter"   Command="{x:Bind ViewModel.ApplyAutoFilterCommand}"/>
+            <AppBarSeparator/>
+            <Button Content="Select All"         Command="{x:Bind ViewModel.SelectAllCommand}"/>
+            <Button Content="Select None"        Command="{x:Bind ViewModel.SelectNoneCommand}"/>
+            <Button Content="Main Feature Only"  Command="{x:Bind ViewModel.SelectMainFeatureCommand}"/>
+        </StackPanel>
+
+        <!-- ── Row 3 : Two-panel body ────────────────────────────────────── -->
+        <Grid Grid.Row="3" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <!-- Left: disc tree -->
+                <ColumnDefinition Width="*"/>
+                <!-- Right: properties / info panel -->
+                <ColumnDefinition Width="330"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ── Left Panel : MakeMKV-style disc tree ─────────────────── -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <!-- Column-header row -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Tree view -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header row that mimics MakeMKV's Type / Description columns -->
+                <Border Grid.Row="0"
+                        Background="{ThemeResource SystemFillColorSolidAttentionBackgroundBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1,1,1,0"
+                        CornerRadius="4,4,0,0"
+                        Padding="10,5">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <!-- Checkbox placeholder -->
+                            <ColumnDefinition Width="28"/>
+                            <!-- Icon -->
+                            <ColumnDefinition Width="22"/>
+                            <!-- Type label -->
+                            <ColumnDefinition Width="100"/>
+                            <!-- Description -->
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="2" Text="Type"
+                                   FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBlock Grid.Column="3" Text="Description"
+                                   FontWeight="SemiBold" FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Empty state (before scan) -->
+                <StackPanel Grid.Row="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="12"
+                            Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay,
+                                         Converter={StaticResource InverseBoolConverter}}">
+                    <FontIcon Glyph="&#xE958;" FontSize="48"
+                              Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
+                    <TextBlock Text="Enter a drive letter and click 'Scan Disc'"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                               TextAlignment="Center"/>
                 </StackPanel>
 
-                <Button Grid.Column="3" 
-                        Content="Scan Disc"
-                        Command="{x:Bind ViewModel.ScanDiscCommand}"
-                        Style="{StaticResource AccentButtonStyle}"/>
+                <!-- Disc TreeView -->
+                <Border Grid.Row="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="0,0,4,4"
+                        Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
+                    <TreeView x:Name="DiscTreeView"
+                              ItemsSource="{x:Bind ViewModel.DiscTree, Mode=OneWay}"
+                              SelectionMode="Single"
+                              SelectionChanged="DiscTreeView_SelectionChanged"
+                              CanDragItems="False"
+                              CanReorderItems="False">
+
+                        <!-- Bind children from each node's Children collection -->
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="ItemsSource" Value="{Binding Children}"/>
+                                <Setter Property="IsExpanded"  Value="True"/>
+                                <Setter Property="Padding"     Value="0"/>
+                                <Setter Property="MinHeight"   Value="32"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+
+                        <!-- Single DataTemplate for all DiscTreeNode subtypes -->
+                        <TreeView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DiscTreeNode">
+                                <Grid MinWidth="0" Padding="0,2">
+                                    <Grid.ColumnDefinitions>
+                                        <!-- Checkbox (28px fixed – invisible/non-interactive for non-checkable) -->
+                                        <ColumnDefinition Width="28"/>
+                                        <!-- Icon (22px) -->
+                                        <ColumnDefinition Width="22"/>
+                                        <!-- Type label (100px) -->
+                                        <ColumnDefinition Width="100"/>
+                                        <!-- Description (*) -->
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Include checkbox -->
+                                    <CheckBox Grid.Column="0"
+                                              IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
+                                              Opacity="{x:Bind CheckBoxOpacity}"
+                                              IsHitTestVisible="{x:Bind CheckBoxInteractive}"
+                                              VerticalAlignment="Center"
+                                              Margin="-6,0,0,0"
+                                              MinWidth="0"/>
+
+                                    <!-- Node type icon -->
+                                    <FontIcon Grid.Column="1"
+                                              Glyph="{x:Bind IconGlyph}"
+                                              FontSize="14"
+                                              VerticalAlignment="Center"
+                                              Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                                    <!-- Type label -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{x:Bind DisplayType}"
+                                               VerticalAlignment="Center"
+                                               FontSize="13"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Description -->
+                                    <TextBlock Grid.Column="3"
+                                               Text="{x:Bind DisplayDescription}"
+                                               VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </DataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Border>
             </Grid>
 
-            <!-- Detected Metadata -->
-            <InfoBar IsOpen="{x:Bind ViewModel.DetectedMetadata, Mode=OneWay, Converter={StaticResource NullToBoolConverter}}"
-                     Severity="Success"
-                     Title="Metadata Detected"
-                     Message="{x:Bind GetMetadataMessage(ViewModel.DetectedMetadata), Mode=OneWay}"
-                     IsClosable="False"/>
-        </StackPanel>
+            <!-- ── Right Panel : Output folder + Properties + Info ──────── -->
+            <Grid Grid.Column="1" RowSpacing="0">
+                <Grid.RowDefinitions>
+                    <!-- Output folder section -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Divider -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Properties section -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Divider -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- Info section (fills remaining space) -->
+                    <RowDefinition Height="*"/>
+                    <!-- Make MKV / rip button area -->
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Filter Controls -->
-        <StackPanel Grid.Row="1"
-                    Spacing="8"
-                    Padding="0,0,0,12"
-                    Orientation="Horizontal"
-                    Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
-            <CheckBox Content="Ignore Extras / Bonus Features"
-                      IsChecked="{x:Bind ViewModel.AutoFilterEnabled, Mode=TwoWay}"
-                      ToolTipService.ToolTip="When checked, only main-feature titles are selected automatically"/>
-            <Button Content="Apply Filter" Command="{x:Bind ViewModel.ApplyAutoFilterCommand}"/>
-            <AppBarSeparator/>
-            <Button Content="Select All" Command="{x:Bind ViewModel.SelectAllCommand}"/>
-            <Button Content="Select None" Command="{x:Bind ViewModel.SelectNoneCommand}"/>
-            <Button Content="Main Feature Only" Command="{x:Bind ViewModel.SelectMainFeatureCommand}"/>
-        </StackPanel>
+                <!-- Output folder -->
+                <StackPanel Grid.Row="0" Spacing="6" Padding="0,0,0,10">
+                    <TextBlock Text="Output folder"
+                               FontWeight="SemiBold" FontSize="13"/>
+                    <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="10,7">
+                        <TextBlock Text="{x:Bind ViewModel.OutputFolderDisplay, Mode=OneWay}"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTipService.ToolTip="{x:Bind ViewModel.OutputFolderDisplay, Mode=OneWay}"/>
+                    </Border>
+                </StackPanel>
 
-        <!-- Titles List -->
-        <Border Grid.Row="2" 
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="4"
-                Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
-            <ScrollViewer>
-                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Titles, Mode=OneWay}">
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="vm:SelectableTitleInfo">
-                            <Grid Padding="12" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                <!-- Divider -->
+                <Border Grid.Row="1"
+                        Height="1"
+                        Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                        Margin="0,0,0,10"/>
 
-                                <CheckBox Grid.Column="0" 
-                                          IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
-                                          VerticalAlignment="Center"
-                                          Margin="0,0,12,0"/>
+                <!-- Properties section -->
+                <StackPanel Grid.Row="2" Spacing="8" Padding="0,0,0,10">
+                    <TextBlock Text="Properties" FontWeight="SemiBold" FontSize="13"/>
 
-                                <StackPanel Grid.Column="1" Spacing="4">
-                                    <TextBlock Text="{x:Bind DisplayName}" 
-                                               FontWeight="SemiBold"/>
-                                    <TextBlock Text="{x:Bind Details}" 
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               FontSize="12"/>
-                                </StackPanel>
+                    <!-- Name field -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Name"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{x:Bind ViewModel.SelectedNodeName, Mode=TwoWay}"
+                                 IsReadOnly="{x:Bind ViewModel.SelectedNodeNameEditable, Mode=OneWay,
+                                              Converter={StaticResource InverseBoolConverter}}"
+                                 PlaceholderText="—"
+                                 FontSize="12"
+                                 Height="32"/>
+                    </Grid>
 
-                                <Border Grid.Column="2"
-                                        Background="{ThemeResource AccentAAFillColorDefaultBrush}"
-                                        CornerRadius="4"
-                                        Padding="8,4"
-                                        Visibility="{x:Bind Title.IsMainFeature}">
-                                    <TextBlock Text="{x:Bind TypeBadge}"
-                                               FontSize="11"
-                                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </ScrollViewer>
-        </Border>
+                    <!-- Profile row (informational, mirrors MakeMKV UI) -->
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="44"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="Profile"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox Grid.Column="1"
+                                  SelectedIndex="0"
+                                  FontSize="12"
+                                  Height="32"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="Default"/>
+                            <ComboBoxItem Content="Full Backup"/>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
 
-        <!-- Empty State -->
-        <StackPanel Grid.Row="2"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Spacing="12"
-                    Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay, Converter={StaticResource InverseBoolConverter}}">
-            <FontIcon Glyph="&#xE958;" FontSize="48" Foreground="{ThemeResource TextFillColorTertiaryBrush}"/>
-            <TextBlock Text="Enter a drive letter and click 'Scan Disc' to begin"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                       TextAlignment="Center"/>
-        </StackPanel>
+                <!-- Divider -->
+                <Border Grid.Row="3"
+                        Height="1"
+                        Background="{ThemeResource DividerStrokeColorDefaultBrush}"
+                        Margin="0,0,0,10"/>
 
-        <!-- Status Bar -->
-        <Grid Grid.Row="3" 
-              Padding="0,12,0,0"
-              Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
-            <TextBlock>
-                <Run Text="{x:Bind ViewModel.SelectedCount, Mode=OneWay}"/>
-                <Run Text="of"/>
-                <Run Text="{x:Bind ViewModel.Titles.Count, Mode=OneWay}"/>
-                <Run Text="titles selected"/>
-            </TextBlock>
+                <!-- Info section -->
+                <StackPanel Grid.Row="4" Spacing="6">
+                    <TextBlock Text="Info" FontWeight="SemiBold" FontSize="13"/>
+                    <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            MinHeight="160"
+                            MaxHeight="240">
+                        <ScrollViewer Padding="10,8">
+                            <TextBlock Text="{x:Bind ViewModel.SelectedNodeInfo, Mode=OneWay}"
+                                       FontSize="12"
+                                       FontFamily="Consolas"
+                                       TextWrapping="Wrap"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </ScrollViewer>
+                    </Border>
+                </StackPanel>
+
+                <!-- Start ripping / badge area at bottom of right panel -->
+                <StackPanel Grid.Row="5"
+                            Spacing="8"
+                            Padding="0,14,0,0"
+                            HorizontalAlignment="Stretch">
+                    <!-- Selected title badge -->
+                    <Border Background="{ThemeResource AccentAAFillColorDefaultBrush}"
+                            CornerRadius="4"
+                            Padding="10,6"
+                            HorizontalAlignment="Stretch">
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}">
+                            <Run Text="{x:Bind ViewModel.SelectedTitleCount, Mode=OneWay}"/>
+                            <Run Text=" of "/>
+                            <Run Text="{x:Bind ViewModel.TotalTitleCount, Mode=OneWay}"/>
+                            <Run Text=" title(s) selected"/>
+                        </TextBlock>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Grid>
+
+        <!-- ── Row 4 : Status bar ─────────────────────────────────────────── -->
+        <TextBlock Grid.Row="4"
+                   Padding="0,10,0,0"
+                   Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                   FontSize="12"
+                   Visibility="{x:Bind ViewModel.HasScanned, Mode=OneWay}">
+            <Run Text="Select titles and tracks to rip. Use checkboxes to include or exclude individual audio and subtitle streams."/>
+        </TextBlock>
     </Grid>
 </ContentDialog>

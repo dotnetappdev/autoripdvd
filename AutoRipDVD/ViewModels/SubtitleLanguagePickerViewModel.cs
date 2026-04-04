@@ -250,7 +250,6 @@ public partial class LanguageItem : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectionIndicatorColor))]
-    [NotifyPropertyChangedFor(nameof(IsSelected))]
     private bool _isSelected;
 
     /// <summary>Accent / highlight colour matching AnyDVD HD's red selected state.</summary>

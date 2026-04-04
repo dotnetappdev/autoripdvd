@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.UI.Xaml;
+using AutoRipDVD.Models;
 using AutoRipDVD.Services;
 using AutoRipDVD.ViewModels;
 using AutoRipDVD.Views;
@@ -26,6 +27,7 @@ public partial class App : Application
 
                 // ── Core services ───────────────────────────────────────────
                 services.AddSingleton<ISettingsService, SettingsService>();
+                services.AddSingleton<ToolDetectionService>();
                 services.AddSingleton<ILogService, LogService>();
                 services.AddSingleton<INotificationService, NotificationService>();
                 services.AddSingleton<ISoundService, SoundService>();

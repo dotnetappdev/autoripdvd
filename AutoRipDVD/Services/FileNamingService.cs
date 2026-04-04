@@ -131,7 +131,7 @@ public class FileNamingService : IFileNamingService
         var episodeNum = meta.EpisodeNumber ?? titleIndex ?? 1;
         var seasonEp = $"S{season:D2}E{episodeNum:D2}";
 
-        var epTitle = meta.EpisodeTitle.IfEmpty(null);
+        var epTitle = string.IsNullOrWhiteSpace(meta.EpisodeTitle) ? null : meta.EpisodeTitle;
 
         return epTitle != null
             ? $"{show} - {seasonEp} - {SanitizePath(epTitle)}"
@@ -160,8 +160,5 @@ public class FileNamingService : IFileNamingService
 internal static class StringExtensions
 {
     public static string IfEmpty(this string? s, string fallback)
-        => string.IsNullOrWhiteSpace(s) ? fallback : s;
-
-    public static string? IfEmpty(this string? s, string? fallback)
         => string.IsNullOrWhiteSpace(s) ? fallback : s;
 }
