@@ -1,318 +1,499 @@
-# AutoRip DVD - Complete DVD/Blu-ray Ripping Solution v1.0.0
+# AutoRip DVD  —  Professional DVD & Blu-ray Ripping Suite
 
-**Version 1.0.0** | [Changelog](VERSION.md) | [Quick Start Guide](QUICKSTART.md) | [Deployment Guide](DEPLOYMENT.md)
+**Version 2.0.0** · [Changelog](VERSION.md) · [Quick Start](QUICKSTART.md) · [Full Feature List](FEATURES.md) · [Deployment Guide](DEPLOYMENT.md)
 
-A comprehensive, professional Windows application for automatic and manual DVD/Blu-ray disc ripping with intelligent metadata matching, advanced quality controls, and batch processing capabilities. Combines the best features of MakeMKV, HandBrake, and FileBot into one modern WinUI 3 application.
+A professional, open-source Windows application that combines the best of **MakeMKV**, **DVDFab**, **AnyDVD HD**, **DVD Shrink**, and **HandBrake** into a single modern WinUI 3 interface.  Insert a disc — AutoRip handles everything automatically, or let you take full control of every track, subtitle, language, and encoding detail.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![.NET](https://img.shields.io/badge/.NET-8.0-purple.svg)
-![WinUI 3](https://img.shields.io/badge/WinUI-3-green.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4.svg)
-
----
-
-## 🌟 Key Features
-
-### 🎬 Professional Disc Ripping
-- **✓ Automatic Disc Detection** - Monitors optical drives using WMI
-- **✓ Copy Protection Handling** - Supports CSS, AACS, BD+ via MakeMKV
-- **✓ Manual Title Selection** - MakeMKV-style GUI for choosing specific titles
-- **✓ Smart Title Filtering** - Automatically identifies main features vs extras
-- **✓ Multi-Disc Support** - Rip from multiple drives simultaneously
-- **✓ Start/Stop Controls** - Full manual override of automatic ripping
-- **✓ Detailed Disc Info** - View drive and disc properties
-
-### 🔍 Intelligent Metadata Matching (FileBot-Style)
-- **✓ Multi-Source Search** - TMDB, OMDb, TheTVDB, AniDB integration
-- **✓ Automatic Title Parsing** - Regex-based extraction of titles, years, episodes
-- **✓ Fuzzy Matching** - Finds best match even with imperfect disc labels
-- **✓ Movie Detection** - Year extraction and TMDB lookup
-- **✓ TV Show Detection** - S01E01, 1x01, Season/Episode pattern recognition
-- **✓ Match History** - SQLite cache of successful matches
-- **✓ Manual Search** - Override with custom metadata queries
-
-### ⚙️ Advanced HandBrake Features
-- **✓ Quality Presets** - Fast 1080p, High Quality, 4K UHD, custom
-- **✓ Video Encoders** - x264, x265/HEVC, VP9, AV1 support
-- **✓ RF Quality Control** - Constant quality (RF 18-28) with tooltips
-- **✓ Audio Encoders** - AAC, AC3, MP3, Opus, FLAC, pass-through
-- **✓ Audio Bitrate** - Configurable from 96-320 kbps
-- **✓ Hardware Encoding** - NVENC, QuickSync, VCE support
-- **✓ Process Priority** - Low/Normal/High to control system impact
-- **✓ Prevent Sleep** - Keeps system awake during encoding
-- **✓ Low Disk Space Pause** - Auto-pause when < 10GB free
-- **✓ Minimum Title Duration** - Filter titles shorter than threshold
-- **✓ Logging Levels** - Standard/Verbose/Debug output
-
-### 🎛️ MakeMKV Quality Controls
-- **✓ Quality Presets** - Original/High/Medium/Low compression
-- **✓ Audio Preservation** - Keep DTS, TrueHD, Dolby Atmos
-- **✓ Multi-Track Audio** - Include all audio tracks or primary only
-- **✓ Subtitle Inclusion** - All subtitles, forced only, or none
-- **✓ Chapter Markers** - Preserve DVD/Blu-ray chapters
-- **✓ Video Streams** - Multiple angles and PiP support
-
-### 📊 Professional Quality
-- **✓ Batch Processing** - Async job queue with parallel execution
-- **✓ Progress Tracking** - Real-time progress bars with ETA
-- **✓ Job History** - SQLite database of all ripping operations
-- **✓ Error Recovery** - Automatic retry with exponential backoff
-- **✓ Webhook Notifications** - Slack, Discord, Pushbullet, IFTTT
-- **✓ Comprehensive Logging** - Rotating logs with verbosity control
-
-### 🎨 Modern Windows 11 UI
-- **✓ WinUI 3 Fluent Design** - Native Windows 11 styling
-- **✓ Settings Organization** - Windows 11-style categorized pages
-- **✓ Light/Dark Themes** - System-integrated or manual selection
-- **✓ Responsive Layout** - Adapts to window size
-- **✓ Keyboard Navigation** - Full accessibility support
-- **✓ Live Dashboard** - Real-time job monitoring
+![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+![WinUI 3](https://img.shields.io/badge/WinUI-3.0-0078D4?logo=microsoft)
+![Windows](https://img.shields.io/badge/Windows-10%2F11-0078D4?logo=windows)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
-## 📋 System Requirements
+## UI Overview
 
-### Software Dependencies
-- **Windows 10/11** (version 1809 or later)
-- **.NET 8 Runtime** - [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
-- **MakeMKV** - [Download](https://www.makemkv.com/)
-- **HandBrake CLI** (optional) - [Download](https://handbrake.fr/)
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  AutoRip DVD                                          🔔  ⚙  —  □  ✕  │
+├────────────┬─────────────────────────────────────────────────────────────┤
+│            │                                                              │
+│  Dashboard │   Active Jobs                          Drive: D: [BDMV]     │
+│  Jobs      │  ┌─────────────────────────────────────────────────────┐   │
+│  Logs      │  │  🎬 Inception (2010)          Ripping…  ████░ 72%  │   │
+│  Transcode │  │  🎬 The Dark Knight (2008)    Queued                │   │
+│  Settings  │  └─────────────────────────────────────────────────────┘   │
+│            │                                                              │
+│            │   Recently Completed                                         │
+│            │  ┌─────────────────────────────────────────────────────┐   │
+│            │  │  ✓ Dune Part Two (2024)    1080p H.265  4.2 GB     │   │
+│            │  └─────────────────────────────────────────────────────┘   │
+├────────────┴─────────────────────────────────────────────────────────────┤
+│  Auto-Rip: ON   Drive D: Ready   Last: Completed 2 min ago               │
+└──────────────────────────────────────────────────────────────────────────┘
+```
 
-### Hardware Requirements
-- Optical drive (DVD or Blu-ray)
-- Sufficient disk space for ripped content
+> Screenshots live in [`docs/screenshots/`](docs/screenshots/) — see the [UI Guide](docs/UI_GUIDE.md) for annotated panels.
+
+---
+
+## Feature Highlights
+
+| Category | Feature | Inspired By |
+|---|---|---|
+| Disc Analysis | Binary IFO parser — reads VIDEO_TS directly | MakeMKV internals |
+| Disc Analysis | CSS / ARccOS / AACS / BD+ detection | AnyDVD HD |
+| Disc Analysis | Region code detection (DVD & Blu-ray) | DVDFab |
+| Ripping | Full SINFO/TINFO stream parsing | MakeMKV robot mode |
+| Ripping | Disc backup mode (raw folder copy) | MakeMKV backup |
+| ISO | Raw sector copy via Win32 (like `dd`) | ImgBurn |
+| ISO | MakeMKV decrypt + mkisofs ISO | DVDFab ISO mode |
+| ISO | ImgBurn CLI with ARccOS skip | ImgBurn |
+| Transcoding | 20-preset library (General/HQ/4K/HW) | HandBrake |
+| Transcoding | Full audio pass-through matrix | HandBrake |
+| Transcoding | HDR pass-through / tone-map to SDR | HandBrake |
+| Transcoding | Subtitle burn-in / soft / SRT extract | HandBrake |
+| Track Picker | Per-track audio/subtitle checkbox + size | DVD Shrink |
+| Track Picker | Live video preview with filmstrip | DVD Shrink |
+| Track Picker | Subtitle overlay preview per track | DVD Shrink |
+| Languages | 40-language picker with flag emoji | AnyDVD HD |
+| Languages | Preferred language auto-apply | AnyDVD HD |
+| Media Info | ffprobe stream info (HDR, Atmos, DTS:X) | MediaInfo |
+| Subtitles | SRT extraction, VOBsub→SRT OCR | SubRip |
+| Subtitles | MKV subtitle mux via mkvmerge | MKVToolNix |
+| Metadata | TMDB, OMDb, TVDB, AniDB | FileBot |
+
+---
+
+## What's New in v2.0
+
+### Disc Analysis Engine
+- **IFO Parser** — reads DVD binary structure without any external tool: titles, chapters, audio/subpicture track attributes, region codes, copy-protection flags
+- **Copy Protection Detector** — reports CSS, ARccOS bad-sector protection, RCE, APS/Macrovision, AACS, BD+, Cinavia, UOPs before ripping begins
+- **Deep Stream Info** — full MakeMKV SINFO/TINFO parsing gives codec, language, resolution, fps, bitrate, channel count, forced/default flags per stream
+
+### ISO Disc Image Dumping (3 modes)
+- **Raw sector copy** — Win32 `CreateFile` direct device read, no external tools, ~full drive speed
+- **MakeMKV decrypted** — strips CSS/AACS, produces a DRM-free ISO via mkisofs
+- **ImgBurn** — sector-accurate with ARccOS bad-sector skipping
+
+### HandBrake-Style Transcoding
+- **20 built-in presets** across General, HQ, Super HQ, Matroska, Web, Devices, 4K, Hardware
+- **Per-job overrides** — every preset option configurable per rip, not just globally
+- **Output formats** — MKV, MP4, WebM, M4V
+- **Audio passthrough matrix** — TrueHD, DTS/DTS-HD, AC3 with AAC fallback
+- **HDR handling** — pass-through or tone-map to SDR
+- **Filters** — deinterlace (+ presets), detelecine, denoise (+ tune), sharpen, deblock, grayscale
+
+### AnyDVD HD–Style Language Picker
+- 40 languages with flag emoji, native names, and red/green selection highlight
+- Separate Subtitle / Audio language tabs
+- Search filter, Select All/None, Reset to Defaults
+- Saved to settings and auto-applied to every new disc
+
+### DVD Shrink–Style Track Selector + Preview
+- Per-track audio checkboxes with codec, channels, language, bitrate, Atmos/DTS:X badge
+- Per-track subtitle checkboxes with forced/default flags, bitmap vs text type indicator
+- **🔥 Burn-in** assignment — pick exactly which subtitle track to burn into video
+- Estimated file-size per track and total selected size
+- **Live video preview** with 8-frame filmstrip (skip first/last 5% for clean thumbnails)
+- **Subtitle overlay preview** — renders chosen subtitle into the frame so you see the actual text before encoding
+- Seek slider to any position in the title
+
+### Subtitle Tools
+- Extract all tracks to SRT/SUP via ffmpeg
+- Convert VOBsub → SRT via Tesseract OCR
+- Merge external SRT into MKV via mkvmerge (non-destructive)
+- Chapter → SRT generation
+
+---
+
+## System Requirements
+
+### Required
+| Software | Version | Purpose |
+|---|---|---|
+| Windows 10 / 11 | 1809 (build 17763)+ | OS |
+| .NET 8 Runtime | 8.0+ | App framework |
+| MakeMKV | Latest | Disc decryption & ripping |
+
+### Optional — unlock additional features
+| Software | Purpose | Where to get |
+|---|---|---|
+| HandBrake CLI | Transcoding | [handbrake.fr](https://handbrake.fr/downloads2.php) |
+| ffmpeg + ffprobe | Media analysis, preview frames, subtitle extraction | [ffmpeg.org](https://ffmpeg.org/download.html) |
+| MKVToolNix | Subtitle muxing (mkvmerge) | [mkvtoolnix.download](https://mkvtoolnix.download/) |
+| Tesseract OCR | VOBsub → SRT conversion | [github.com/UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki) |
+| ImgBurn | ISO creation with ARccOS skip | [imgburn.com](https://www.imgburn.com/) |
+| mkisofs / genisoimage | Folder → ISO wrapping | Via cdrtools on Windows |
+
+### Hardware
+- Optical drive (DVD-ROM or BD-ROM)
+- **For raw ISO:** Administrator rights (Win32 device access)
+- **For hardware encoding:** NVIDIA/Intel/AMD GPU with NVENC/QSV/VCE
+
+---
 
 ## Installation
 
-### Option 1: Build from Source
-
-1. **Clone the repository**
-   ```powershell
-   git clone https://github.com/yourusername/autoripdvd.git
-   cd autoripdvd
-   ```
-
-2. **Install MakeMKV**
-   - Download and install from [makemkv.com](https://www.makemkv.com/)
-   - Note the installation path (typically `C:\Program Files (x86)\MakeMKV\makemkvcon64.exe`)
-
-3. **Install HandBrake CLI** (optional)
-   - Download from [handbrake.fr](https://handbrake.fr/)
-   - Note the installation path (typically `C:\Program Files\HandBrake\HandBrakeCLI.exe`)
-
-4. **Build the application**
-   ```powershell
-   dotnet build AutoRipDVD.sln -c Release
-   ```
-
-5. **Run the application**
-   ```powershell
-   cd AutoRipDVD\bin\Release\net8.0-windows10.0.19041.0\win-x64
-   .\AutoRipDVD.exe
-   ```
-
-### Option 2: Download Pre-built Binary
-*Coming soon - check Releases page*
-
-## Configuration
-
-### Initial Setup
-
-1. **Launch AutoRip DVD**
-2. **Navigate to Settings** (gear icon)
-3. **Configure paths:**
-   - Set MakeMKV executable path
-   - Set HandBrake CLI path (if using)
-   - Set output folder for ripped media
-4. **Add API keys:**
-   - Get a free OMDb API key from [omdbapi.com](https://www.omdbapi.com/apikey.aspx)
-   - (Optional) Add TVDB API key for enhanced TV show metadata
-5. **Configure ripping options:**
-   - Enable/disable auto-rip
-   - Choose main feature only vs all titles
-   - Set minimum title length
-   - Configure auto-eject and transcoding
-
-### API Keys
-
-#### OMDb API Key (Required for metadata)
-1. Visit [omdbapi.com/apikey.aspx](https://www.omdbapi.com/apikey.aspx)
-2. Choose the free tier (1,000 requests/day)
-3. Verify your email
-4. Copy the API key into AutoRip DVD settings
-
-#### TVDB API Key (Optional, for TV shows)
-1. Create account at [thetvdb.com](https://thetvdb.com/)
-2. Generate API key from your account settings
-3. Add to AutoRip DVD settings
-
-## Usage
-
-### Automatic Mode
-1. **Enable Auto Rip** in Settings
-2. **Insert a disc** - The app automatically detects and starts ripping
-3. **Monitor progress** on the Dashboard
-4. **Disc ejects** when complete (if enabled)
-5. **Find your ripped media** in the output folder
-
-### Manual Mode
-1. **Disable Auto Rip** in Settings
-2. **Insert a disc** - The app detects but waits
-3. **Preview titles** in the job details
-4. **Select specific titles** to rip (episodes, features, etc.)
-5. **Start the rip** manually
-6. **Monitor progress** on the Dashboard
-
-### Output Structure
-
-**Movies:**
-```
-OutputFolder/
-  └── Movie Title (2024)/
-      ├── Movie Title (2024).mkv  (or .mp4 if transcoded)
-      └── ...
-```
-
-**TV Shows:**
-```
-OutputFolder/
-  └── Series Name/
-      ├── S01E01 - Episode Title.mkv
-      ├── S01E02 - Episode Title.mkv
-      └── ...
-```
-
-## How It Works
-
-### Disc Detection
-- Uses Windows Management Instrumentation (WMI) to monitor optical drives
-- Detects DVD (VIDEO_TS folder) and Blu-ray (BDMV folder) automatically
-- Triggers ripping workflow on disc insertion
-
-### Title Filtering (Like Automatic Ripping Machine)
-- **Scans all titles** on the disc using MakeMKV
-- **Analyzes duration, chapters, and file size** to identify main content
-- **Filters out extras** - Removes trailers, menus, bonus features
-- **For TV shows** - Identifies episode-length titles (15-90 minutes)
-- **For movies** - Selects the longest title as main feature
-- **Manual override** - Preview and select specific titles if needed
-
-### Metadata Matching (Like FileBot)
-- **Parses disc label** using intelligent regex patterns
-- **Extracts movie title and year** - e.g., "Inception (2010)"
-- **Detects TV episodes** - Recognizes S01E01, 1x01, Season 1 patterns
-- **Searches OMDb/TVDB** for accurate metadata
-- **Fuzzy matching** - Finds best match even with imperfect labels
-- **Auto-naming** - Creates Plex/Emby-compatible folder structure
-
-### Ripping Pipeline
-1. **Scan** - MakeMKV scans disc and lists all titles
-2. **Identify** - Parse disc label and fetch metadata
-3. **Filter** - Remove extras, keep main content
-4. **Rip** - MakeMKV extracts selected titles to MKV
-5. **Transcode** (optional) - HandBrake converts to MP4
-6. **Organize** - Move to output folder with proper naming
-7. **Eject** - Eject disc when complete
-
-## Notifications
-
-### Webhook Configuration
-AutoRip DVD supports generic webhook notifications compatible with most services:
-
-**Slack:**
-1. Create Incoming Webhook in Slack
-2. Paste webhook URL in Settings
-
-**Discord:**
-1. Create webhook in Discord server settings
-2. Paste webhook URL in Settings
-
-**IFTTT/Pushbullet/etc:**
-- Configure webhook that accepts JSON POST with `title` and `message` fields
-
-## Troubleshooting
-
-### Disc Not Detected
-- Ensure disc is fully inserted and drive is ready
-- Check Windows Device Manager for drive issues
-- Try manually opening/closing the drive tray
-
-### MakeMKV Errors
-- Ensure MakeMKV is installed and path is correct in Settings
-- Verify MakeMKV can open the disc manually
-- Check MakeMKV beta key if using trial version
-- Some discs may require updated MakeMKV version
-
-### Metadata Not Found
-- Verify OMDb API key is valid and has remaining quota
-- Try manually searching for the title in the job details
-- Check disc label matches the actual content
-- Edit metadata manually if auto-detection fails
-
-### HandBrake Transcoding Fails
-- Ensure HandBrake CLI is installed and path is correct
-- Check available disk space
-- Verify preset name matches available presets
-- Review logs for specific HandBrake errors
-
-## Command Line Tools
-
-The app uses these command-line tools:
-
-### MakeMKV CLI
+### 1. Build from Source
 ```powershell
-# Scan disc
-makemkvcon64.exe -r info disc:0
-
-# Rip title
-makemkvcon64.exe -r mkv disc:0 0 "C:\Output"
+git clone https://github.com/dotnetappdev/autoripdvd.git
+cd autoripdvd
+dotnet build AutoRipDVD.sln -c Release
+cd AutoRipDVD\bin\Release\net8.0-windows10.0.19041.0\win-x64
+.\AutoRipDVD.exe
 ```
 
-### HandBrakeCLI
+### 2. Install Optional Tools (recommended)
+
+**ffmpeg** (enables preview thumbnails, subtitle extraction, media analysis):
 ```powershell
-# Transcode
-HandBrakeCLI.exe --preset "Fast 1080p30" -i "input.mkv" -o "output.mp4"
+winget install Gyan.FFmpeg
+# Default install: C:\Program Files\ffmpeg\bin\ffmpeg.exe
 ```
 
-## Contributing
+**MKVToolNix** (subtitle muxing):
+```powershell
+winget install MKVToolNix.MKVToolNix
+```
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+**Tesseract** (VOBsub OCR):
+```powershell
+winget install UB-Mannheim.TesseractOCR
+```
 
-## Roadmap
-
-- [ ] Multi-language subtitle extraction
-- [ ] Audio track selection
-- [ ] Custom naming templates
-- [ ] CD audio ripping (abcde integration)
-- [ ] ISO creation for data discs
-- [ ] Network drive support
-- [ ] IMDB/TMDB direct API integration
-- [ ] Chapter marker preservation
-- [ ] Batch disc handling workflow
-
-## License
-
-This project is licensed under the MIT License - see LICENSE file for details.
-
-## Acknowledgments
-
-- **MakeMKV** - Disc ripping engine
-- **HandBrake** - Video transcoding
-- **OMDb API** - Movie/TV metadata
-- **FileBot** - Inspiration for intelligent title parsing
-- **Automatic Ripping Machine** - Inspiration for filtering logic
-
-## Support
-
-For issues, questions, or feature requests:
-- Open an issue on GitHub
-- Check the Wiki for detailed guides
-- Review logs in the app for troubleshooting
+### 3. First-Run Setup
+1. Launch AutoRip DVD
+2. Open **Settings → Paths** and verify/set all tool paths
+3. Open **Settings → API Keys** and add your OMDb key ([free at omdbapi.com](https://www.omdbapi.com/apikey.aspx))
+4. Open **Settings → Languages** to set your preferred subtitle and audio languages
+5. Insert a disc to test detection
 
 ---
 
-**Disclaimer:** This software is for backing up media you own. Respect copyright laws in your jurisdiction.
+## Quick Start
+
+### Fully Automatic (Fire and Forget)
+1. Enable **Auto-Rip** in Settings
+2. Insert a disc
+3. AutoRip detects, analyses, fetches metadata, rips, transcodes, and ejects
+
+### Manual with Full Control
+1. Insert a disc — detection notification appears
+2. Click **Select Titles** to open the DVD Shrink–style panel:
+   - Browse the filmstrip preview
+   - Tick/untick audio tracks by language
+   - Tick/untick subtitle tracks; set burn-in target
+3. Click **Language Picker** to set preferred languages globally
+4. Click **Transcode Settings** to pick a preset or customise encoding
+5. Click **Start Rip**
+
+### ISO Dump
+1. Insert a disc
+2. Click **Create ISO** (or enable **Auto Create ISO** in Settings)
+3. Choose mode: Raw (fast, encrypted) / Decrypted (DRM-free) / ImgBurn
+4. Monitor progress in the Dashboard
+
+---
+
+## Output Structure
+
+### Movies
+```
+D:\Ripped\
+  └── Inception (2010)\
+      └── Inception (2010).mkv
+```
+
+### TV Shows  
+```
+D:\Ripped\
+  └── Breaking Bad\
+      ├── S01E01 - Pilot.mkv
+      ├── S01E02 - Cat's in the Bag.mkv
+      └── ...
+```
+
+### ISO Images
+```
+D:\Ripped\ISO\
+  ├── Inception (2010).iso
+  └── Dune Part Two (2024).iso
+```
+
+---
+
+## Architecture
+
+```
+AutoRipDVD.sln
+├── AutoRipDVD                     Main WinUI 3 application
+│   ├── Models/
+│   │   ├── Models.cs              Core data classes + AppSettings
+│   │   └── StreamModels.cs        Stream info, presets, protection models
+│   ├── Services/
+│   │   ├── DiscDetectionService   WMI drive monitoring
+│   │   ├── IfoParserService       DVD IFO binary parser
+│   │   ├── CopyProtectionService  CSS/AACS/BD+ detection
+│   │   ├── MakeMkvService         MakeMKV CLI (TINFO/SINFO parsing)
+│   │   ├── DiscAnalyzerService    Pre-rip disc analysis orchestrator
+│   │   ├── IsoCreatorService      Raw/decrypted/ImgBurn ISO creation
+│   │   ├── HandBrakeService       HandBrake CLI with TranscodePreset
+│   │   ├── TranscodePresetService 20 built-in + custom presets
+│   │   ├── FfprobeService         ffprobe JSON stream analysis
+│   │   ├── DiscPreviewService     Filmstrip + subtitle overlay preview
+│   │   ├── SubtitleService        Extract/convert/mux subtitles
+│   │   ├── MetadataService        Multi-source metadata orchestrator
+│   │   ├── FileNamingService      Plex/Emby-compatible path builder
+│   │   ├── RipJobQueue            Async job pipeline
+│   │   ├── SettingsService        SQLite-backed settings
+│   │   ├── LogService             Rotating file logger
+│   │   ├── SoundService           System sound notifications
+│   │   └── NotificationService    Webhook (Slack/Discord)
+│   └── ViewModels/
+│       ├── MainViewModel          Dashboard
+│       ├── TranscodeViewModel     HandBrake-style encoding UI
+│       ├── TrackSelectorViewModel DVD Shrink-style track picker + preview
+│       ├── SubtitleLanguagePickerViewModel  AnyDVD-style language grid
+│       ├── TitleSelectionViewModel          MakeMKV-style title browser
+│       ├── SettingsViewModel
+│       ├── JobsViewModel
+│       └── LogsViewModel
+├── AutoRipDVD.Database            SQLite DAL
+│   ├── DatabaseInitializer        Schema creation + migrations
+│   └── Repositories/              Settings / Jobs / MatchHistory
+└── AutoRipDVD.MetadataSources     Pluggable metadata providers
+    └── Sources/                   TMDB / OMDb / TVDB / AniDB
+```
+
+---
+
+## Ripping Pipeline (detailed)
+
+```
+Disc inserted
+    │
+    ▼
+┌─────────────────────────────┐
+│  1. Disc Analysis           │  IFO parse + protection detect
+│     (before any ripping)    │  Reports CSS/AACS/regions
+└──────────────┬──────────────┘
+               │
+    ▼
+┌─────────────────────────────┐
+│  2. MakeMKV Scan            │  TINFO + SINFO → stream details
+│     (full title list)       │  Audio codecs, langs, resolutions
+└──────────────┬──────────────┘
+               │
+    ▼
+┌─────────────────────────────┐
+│  3. Metadata Fetch          │  TMDB / OMDb / TVDB / AniDB
+│     (title + year + type)   │  Fuzzy match, history cache
+└──────────────┬──────────────┘
+               │
+    ▼
+┌─────────────────────────────┐
+│  4. Title Filter            │  Main feature / episodes / extras
+│     + Language Apply        │  Preferred audio + subtitle langs
+└──────────────┬──────────────┘
+               │
+    ▼
+┌─────────────────────────────┐
+│  5. Rip via MakeMKV         │  Decrypt → lossless MKV to temp
+│     (progress 0–70 %)       │
+└──────────────┬──────────────┘
+               │
+    ├──────────┤  (if AutoCreateIso)
+    ▼          ▼
+┌──────────┐ ┌────────────────┐
+│  6a. ISO │ │  6b. Transcode │  HandBrake preset → output format
+│  Creation│ │  (70–100 %)    │  Track selection, subtitle handling
+└──────────┘ └────────────────┘
+               │
+    ▼
+┌─────────────────────────────┐
+│  7. Eject + Notify          │  Sound + webhook notification
+└─────────────────────────────┘
+```
+
+---
+
+## Settings Reference
+
+### Paths
+| Setting | Default | Description |
+|---|---|---|
+| MakeMkvPath | `C:\...\makemkvcon64.exe` | MakeMKV executable |
+| HandBrakePath | `C:\...\HandBrakeCLI.exe` | HandBrake CLI |
+| FfmpegPath | `C:\...\ffmpeg.exe` | ffmpeg (preview + subtitles) |
+| FfprobePath | `C:\...\ffprobe.exe` | ffprobe (stream analysis) |
+| MkvMergePath | `C:\...\mkvmerge.exe` | MKVToolNix merge |
+| TesseractPath | `C:\...\tesseract.exe` | OCR for VOBsub→SRT |
+| ImgBurnPath | `C:\...\ImgBurn.exe` | ImgBurn ISO mode |
+| OutputPath | `D:\Ripped` | Final media output |
+| IsoOutputPath | _(same as OutputPath)_ | ISO file output |
+| TempPath | `%TEMP%\AutoRipDVD` | Working directory |
+
+### Language Preferences
+| Setting | Example | Description |
+|---|---|---|
+| PreferredAudioLanguages | `eng,fra` | ISO 639-2 codes, comma-separated |
+| PreferredSubtitleLanguages | `eng` | Applied to every new disc |
+
+### ISO Settings
+| Setting | Default | Description |
+|---|---|---|
+| AutoCreateIso | `false` | Create ISO automatically after ripping |
+| DefaultIsoMode | `RawSectorCopy` | `RawSectorCopy` / `MakeMkvDecrypted` / `ImgBurn` |
+| EjectAfterIso | `true` | Eject disc once ISO is finished |
+| VerifyIsoAfterCreation | `false` | Verify sector count after writing |
+
+### Preview
+| Setting | Default | Description |
+|---|---|---|
+| FilmstripFrameCount | `8` | Number of filmstrip thumbnails |
+| PreviewWidth | `640` | Main preview image width (px) |
+| PreviewHeight | `360` | Main preview image height (px) |
+| AutoLoadPreview | `true` | Auto-generate filmstrip on source open |
+| PreviewSubtitleOverlay | `true` | Allow subtitle rendering in preview |
+
+---
+
+## Transcoding Presets
+
+| Preset | Category | Encoder | Quality | Audio |
+|---|---|---|---|---|
+| Fast 480p30 | General | x264 | RF 22 | AAC Stereo |
+| Fast 720p30 | General | x264 | RF 22 | AAC DPL2 |
+| Fast 1080p30 | General | x264 | RF 22 | AAC DPL2 |
+| HQ 720p30 Surround | HQ | x264 | RF 20 | AAC 5.1 |
+| HQ 1080p30 Surround | HQ | x264 | RF 20 | AAC 5.1 |
+| Super HQ 1080p30 | Super HQ | x264 | RF 18 | AAC 5.1, 2-pass |
+| Super HQ 2160p60 4K | Super HQ | x265 10-bit | RF 18 | AAC 7.1 |
+| H.264 MKV 1080p30 | Matroska | x264 | RF 20 | Passthrough |
+| H.265 MKV 1080p30 | Matroska | x265 | RF 22 | Passthrough |
+| H.265 MKV 2160p (4K) | Matroska | x265 10-bit | RF 20 | Passthrough |
+| Web 720p30 | Web | x264 | RF 23 | AAC Stereo |
+| Web 1080p30 | Web | x264 | RF 22 | AAC DPL2 |
+| Apple TV 4K | Devices | x265 10-bit | RF 20 | AAC 5.1 |
+| Chromecast 1080p | Devices | x264 | RF 22 | AAC DPL2 |
+| Android 720p | Devices | x264 | RF 23 | AAC Stereo |
+| 4K H.265 2160p | 4K | x265 10-bit | RF 18 | Passthrough |
+| 4K AV1 2160p | 4K | AV1 | CQ 28 | Opus |
+| NVIDIA NVENC H.264 1080p | Hardware | NVENC H.264 | RF 22 | AAC DPL2 |
+| NVIDIA NVENC H.265 1080p | Hardware | NVENC H.265 | RF 22 | AAC DPL2 |
+| Intel QuickSync H.264 1080p | Hardware | QSV H.264 | RF 22 | AAC DPL2 |
+| AMD VCE H.264 1080p | Hardware | VCE H.264 | RF 22 | AAC DPL2 |
+
+Custom presets are saved to `%AppData%\AutoRipDVD\custom_presets.json`.
+
+---
+
+## Supported Languages (Subtitle / Audio Picker)
+
+Arabic · Bulgarian · Catalan · Chinese (Simplified) · Chinese (Traditional) · Croatian · Czech · Danish · Dutch · **English** · Estonian · Finnish · French · German · Greek · Hebrew · Hindi · Hungarian · Indonesian · Italian · Japanese · Korean · Latvian · Lithuanian · Malay · Norwegian · Persian · Polish · Portuguese · Portuguese (Brazil) · Romanian · Russian · Serbian · Slovak · Slovenian · Spanish · Swedish · Thai · Turkish · Ukrainian · Vietnamese
+
+---
+
+## Troubleshooting
+
+### Disc not detected
+- Check drive is ready in Windows Explorer
+- Restart disc detection: Settings → Advanced → Restart Detection
+
+### Raw ISO fails with "Access Denied"
+- **Run AutoRip DVD as Administrator** — Win32 raw device access (`\\.\D:`) requires elevated privileges
+
+### Preview thumbnails not appearing
+- Set **FfmpegPath** and **FfprobePath** in Settings → Paths
+- Install ffmpeg: `winget install Gyan.FFmpeg`
+
+### Subtitle overlay not rendering
+- PGS/VOBsub overlay needs ffmpeg ≥ 5.0
+- Check **PreviewSubtitleOverlay** is enabled in Settings
+
+### MakeMKV decrypted ISO fails
+- Install mkisofs: download cdrtools for Windows or use `winget install oscdimg`
+- Set **MkisofsPath** in Settings if auto-detect fails
+
+### VOBsub → SRT conversion poor quality
+- Install Tesseract language data for the disc language (`tesseract-ocr-xxx.exe`)
+- Bitmap subtitles have OCR accuracy limits; SDH text tracks produce better results
+
+---
+
+## External Tool CLI Reference
+
+### MakeMKV Robot Mode
+```powershell
+# Scan disc (returns TINFO/SINFO/CINFO lines)
+makemkvcon64.exe -r --cache=1 info disc:0
+
+# Rip title 0 to folder
+makemkvcon64.exe -r mkv disc:0 0 "D:\Temp"
+
+# Full backup (decrypt)
+makemkvcon64.exe -r --decrypt backup disc:0 "D:\Backup"
+```
+
+### HandBrake CLI
+```powershell
+# Encode with preset
+HandBrakeCLI.exe --preset "H.265 MKV 1080p30" -i "input.mkv" -o "output.mkv"
+
+# Custom encode (x265, RF20, AAC 5.1, all tracks, burned subtitles)
+HandBrakeCLI.exe -i "input.mkv" -o "output.mkv" --encoder x265 --quality 20 `
+  --aencoder av_aac --ab 320 --mixdown 5point1 --all-audio `
+  --subtitle 1 --subtitle-burned 1 --markers --format av_mkv
+```
+
+### ffprobe Stream Info
+```powershell
+ffprobe -v quiet -print_format json -show_streams -show_chapters "input.mkv"
+```
+
+### ISO Creation (raw)
+```powershell
+# Equivalent of what AutoRip does internally
+dd if=\\.\D: of="output.iso" bs=2048   # requires dd for Windows
+```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/my-feature`
+3. Commit your changes
+4. Push and open a Pull Request
+
+Please keep each PR focused on a single feature or fix.
+
+---
+
+## Acknowledgements
+
+| Tool / Project | Role |
+|---|---|
+| [MakeMKV](https://www.makemkv.com/) | Disc decryption & ripping engine |
+| [HandBrake](https://handbrake.fr/) | Video transcoding |
+| [ffmpeg / ffprobe](https://ffmpeg.org/) | Media analysis, preview, subtitle extraction |
+| [MKVToolNix](https://mkvtoolnix.download/) | MKV muxing |
+| [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) | Bitmap subtitle OCR |
+| [OMDb API](https://www.omdbapi.com/) | Movie / TV metadata |
+| [TMDB](https://www.themoviedb.org/) | Movie / TV metadata + artwork |
+| [TheTVDB](https://thetvdb.com/) | TV show metadata |
+| [AniDB](https://anidb.net/) | Anime metadata |
+| [FileBot](https://www.filebot.net/) | Naming convention inspiration |
+| [Automatic Ripping Machine](https://github.com/automatic-ripping-machine/automatic-ripping-machine) | Auto-rip pipeline inspiration |
+| [DVD Shrink](https://www.dvdshrink.org/) | Track selector UI inspiration |
+| [AnyDVD HD](https://www.redfox.biz/anydvdhd.html) | Language picker UI inspiration |
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+**Disclaimer:** This software is intended for making personal backup copies of media you legally own. Respect copyright law in your jurisdiction.
