@@ -40,6 +40,8 @@ public class RipJobQueue : IRipJobQueue
     private readonly INotificationService _notificationService;
     private readonly ISoundService _soundService;
     private readonly IDatabase _database;
+    private readonly IDiscAnalyzerService _discAnalyzer;
+    private readonly ITranscodePresetService _presets;
 
     // Auto-rip enable/disable toggle (separate from settings so we can start/stop at runtime)
     private bool _autoRipActive;
@@ -59,7 +61,9 @@ public class RipJobQueue : IRipJobQueue
         ILogService logService,
         INotificationService notificationService,
         ISoundService soundService,
-        IDatabase database)
+        IDatabase database,
+        IDiscAnalyzerService discAnalyzer,
+        ITranscodePresetService presets)
     {
         _makeMkvService      = makeMkvService;
         _handBrakeService    = handBrakeService;
@@ -72,6 +76,8 @@ public class RipJobQueue : IRipJobQueue
         _notificationService = notificationService;
         _soundService        = soundService;
         _database            = database;
+        _discAnalyzer        = discAnalyzer;
+        _presets             = presets;
 
         _autoRipActive = settings.Settings.AutoRip;
         _discDetection.DiscInserted += OnDiscInserted;
@@ -180,10 +186,27 @@ public class RipJobQueue : IRipJobQueue
         {
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
-            // Step 1: Scan disc
-            await UpdateStatusAsync(job, RipStatus.Detecting, "Scanning disc...");
+            // Step 1: Deep disc analysis (IFO parse + copy protection detection)
+            if (_settings.Settings.RunDiscAnalysisBeforeRip)
+            {
+                await UpdateStatusAsync(job, RipStatus.Detecting, "Analysing disc structure…");
+                var analysisProgress = new Progress<string>(msg => { job.CurrentOperation = msg; _ = UpdateJobAsync(job); });
+                var analysis = await _discAnalyzer.AnalyseDiscAsync(job.Disc, null, analysisProgress);
+
+                if (analysis.Protection.IsProtected)
+                    await _logService.LogAsync($"Protection detected: {analysis.Protection.ProtectionSummary}");
+
+                // Pre-populate titles from IFO if we got them
+                if (analysis.Titles.Count > 0)
+                    job.Titles = analysis.Titles;
+            }
+
+            // Step 2: Scan disc with MakeMKV (gets full stream details)
+            await UpdateStatusAsync(job, RipStatus.Detecting, "Scanning disc with MakeMKV…");
             var scanProgress = new Progress<string>(msg => { job.CurrentOperation = msg; _ = UpdateJobAsync(job); });
-            job.Titles = await _makeMkvService.ScanDiscAsync(job.Disc.DriveLetter, scanProgress);
+            var mkvTitles = await _makeMkvService.ScanDiscAsync(job.Disc.DriveLetter, scanProgress);
+            if (mkvTitles.Count > 0)
+                job.Titles = mkvTitles; // MakeMKV scan is more authoritative
 
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
@@ -312,7 +335,9 @@ public class RipJobQueue : IRipJobQueue
                         _ = UpdateJobAsync(job);
                     });
 
-                    await _handBrakeService.TranscodeAsync(mkv, outputPath, transcodeProgress, ct);
+                    var activePreset = _presets.GetDefault();
+                    await _handBrakeService.TranscodeWithPresetAsync(
+                        mkv, outputPath, activePreset, null, transcodeProgress, ct);
                     job.OutputPath = Path.GetDirectoryName(outputPath) ?? outRoot;
                 }
 

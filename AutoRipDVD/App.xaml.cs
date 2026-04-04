@@ -31,7 +31,19 @@ public partial class App : Application
                 services.AddSingleton<ISoundService, SoundService>();
                 services.AddSingleton<IDiscDetectionService, DiscDetectionService>();
                 services.AddSingleton<IMakeMkvService, MakeMkvService>();
+
+                // ── Disc analysis services (new) ────────────────────────────
+                services.AddSingleton<IIfoParserService, IfoParserService>();
+                services.AddSingleton<ICopyProtectionService, CopyProtectionService>();
+                services.AddSingleton<IFfprobeService, FfprobeService>();
+                services.AddSingleton<ITranscodePresetService, TranscodePresetService>();
+                services.AddSingleton<ISubtitleService, SubtitleService>();
+                services.AddSingleton<IDiscAnalyzerService, DiscAnalyzerService>();
+
+                // ── Transcoding ─────────────────────────────────────────────
                 services.AddSingleton<IHandBrakeService, HandBrakeService>();
+
+                // ── Media pipeline ──────────────────────────────────────────
                 services.AddSingleton<IMetadataService, MetadataService>();
                 services.AddSingleton<ITitleFilterService, TitleFilterService>();
                 services.AddSingleton<IFileNamingService, FileNamingService>();
@@ -43,6 +55,7 @@ public partial class App : Application
                 services.AddTransient<LogsViewModel>();
                 services.AddTransient<JobsViewModel>();
                 services.AddTransient<TitleSelectionViewModel>();
+                services.AddTransient<TranscodeViewModel>();
 
                 // ── Views ───────────────────────────────────────────────────
                 services.AddTransient<MainWindow>();

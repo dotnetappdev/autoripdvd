@@ -260,6 +260,11 @@ public class AppSettings
     // Paths
     public string MakeMkvPath { get; set; } = @"C:\Program Files (x86)\MakeMKV\makemkvcon64.exe";
     public string HandBrakePath { get; set; } = @"C:\Program Files\HandBrake\HandBrakeCLI.exe";
+    public string FfmpegPath { get; set; } = @"C:\Program Files\ffmpeg\bin\ffmpeg.exe";
+    public string FfprobePath { get; set; } = @"C:\Program Files\ffmpeg\bin\ffprobe.exe";
+    public string MkvMergePath { get; set; } = @"C:\Program Files\MKVToolNix\mkvmerge.exe";
+    public string MkvExtractPath { get; set; } = @"C:\Program Files\MKVToolNix\mkvextract.exe";
+    public string TesseractPath { get; set; } = @"C:\Program Files\Tesseract-OCR\tesseract.exe";
     public string OutputPath { get; set; } = @"D:\Ripped";
     public string TempPath { get; set; } = Path.Combine(Path.GetTempPath(), "AutoRipDVD");
     public string MakeMkvDataDirectory { get; set; } = @"C:\Users\{USER}\.MakeMKV";
@@ -316,7 +321,37 @@ public class AppSettings
     public int AudioBitrate { get; set; } = 160;
     public bool UseHardwareAcceleration { get; set; } = true;
     public bool AutoDetectHardwareEncoder { get; set; } = true;
-    
+
+    // Output format
+    public OutputFormat DefaultOutputFormat { get; set; } = OutputFormat.MKV;
+    public AudioMixdown DefaultAudioMixdown { get; set; } = AudioMixdown.Auto;
+
+    // Audio preferences
+    public string PreferredAudioLanguages { get; set; } = "eng";    // comma-separated ISO 639-2
+    public string PreferredSubtitleLanguages { get; set; } = "eng";
+    public bool PassthroughDolbyTrueHd { get; set; } = true;
+    public bool PassthroughDts { get; set; } = true;
+    public bool PassthroughDolbyDigital { get; set; } = false;
+    public double AudioGainDb { get; set; } = 0.0;
+
+    // Picture settings
+    public bool AutoCrop { get; set; } = true;
+    public bool KeepAspectRatio { get; set; } = true;
+    public int? MaxWidth { get; set; }
+    public int? MaxHeight { get; set; }
+
+    // HDR
+    public HdrMode HdrHandling { get; set; } = HdrMode.Passthrough;
+
+    // Subtitle defaults
+    public bool BurnForcedSubtitles { get; set; } = false;
+    public bool ExtractSubtitlesToSrt { get; set; } = false;
+    public bool IncludeForcedSubsOnly { get; set; } = false;
+
+    // Disc analysis
+    public bool RunDiscAnalysisBeforeRip { get; set; } = true;
+    public bool ShowCopyProtectionInfo { get; set; } = true;
+
     // HandBrake Advanced Video Settings
     public bool EnableTwoPassEncoding { get; set; } = false;
     public bool EnableTurboFirstPass { get; set; } = true;
@@ -325,13 +360,18 @@ public class AppSettings
     public string x264Profile { get; set; } = "auto"; // auto, baseline, main, high
     public string x265Preset { get; set; } = "medium";
     public string CustomEncoderOptions { get; set; } = string.Empty;
-    
+
     // HandBrake Filters
     public bool EnableDeinterlacing { get; set; } = false;
+    public string DeinterlacePreset { get; set; } = "default";
+    public bool EnableDetelecine { get; set; } = false;
     public bool EnableDenoise { get; set; } = false;
     public string DenoisePreset { get; set; } = "medium"; // light, medium, strong
+    public string DenoiseTune { get; set; } = "none";
     public bool EnableSharpen { get; set; } = false;
+    public string SharpenPreset { get; set; } = "medium";
     public bool EnableDeblock { get; set; } = false;
+    public bool GrayscaleVideo { get; set; } = false;
     
     // HandBrake Logging
     public LogVerbosity LogVerbosity { get; set; } = LogVerbosity.Standard;
