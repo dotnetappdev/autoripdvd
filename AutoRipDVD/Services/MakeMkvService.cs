@@ -8,7 +8,8 @@ public interface IMakeMkvService
 {
     Task<List<TitleInfo>> ScanDiscAsync(string driveLetter, IProgress<string>? progress = null);
     Task<bool> RipTitlesAsync(string driveLetter, List<int> titleIndices, string outputPath,
-        IProgress<double>? progress = null, CancellationToken ct = default);
+        IProgress<double>? progress = null, IProgress<MakeMkvRipStats>? statsProgress = null,
+        CancellationToken ct = default);
     Task<string> GetVersionAsync();
     Task<List<string>> GetDriveListAsync();
     Task<bool> BackupDiscAsync(string driveLetter, string outputPath,
@@ -91,7 +92,8 @@ public class MakeMkvService : IMakeMkvService
 
     public async Task<bool> RipTitlesAsync(
         string driveLetter, List<int> titleIndices, string outputPath,
-        IProgress<double>? progress = null, CancellationToken ct = default)
+        IProgress<double>? progress = null, IProgress<MakeMkvRipStats>? statsProgress = null,
+        CancellationToken ct = default)
     {
         try
         {
@@ -99,15 +101,18 @@ public class MakeMkvService : IMakeMkvService
             var driveIndex = GetDriveIndex(driveLetter);
             var s          = _settings.Settings;
 
+            // One stats tracker for the whole batch
+            var tracker = new MakeMkvStatsTracker(outputPath);
+
             foreach (var titleIndex in titleIndices)
             {
                 if (ct.IsCancellationRequested) return false;
 
                 await _logService.LogAsync($"Ripping title {titleIndex} from {driveLetter}");
 
-                // Build MakeMKV argument set
+                tracker.ResetTitleTimer();
                 var args = BuildRipArguments(driveIndex, titleIndex, outputPath, s);
-                await RunMakeMkvWithProgressAsync(args, progress, ct);
+                await RunMakeMkvWithProgressAsync(args, progress, statsProgress, tracker, ct);
             }
 
             return true;
@@ -136,7 +141,7 @@ public class MakeMkvService : IMakeMkvService
             var args       = $"-r backup disc:{driveIndex} \"{outputPath}\"";
 
             await _logService.LogAsync($"Backing up disc {driveLetter} to {outputPath}");
-            await RunMakeMkvWithProgressAsync(args, progress, ct);
+            await RunMakeMkvWithProgressAsync(args, progress, null, new MakeMkvStatsTracker(outputPath), ct);
             return true;
         }
         catch (Exception ex)
@@ -228,7 +233,9 @@ public class MakeMkvService : IMakeMkvService
 
     private async Task RunMakeMkvWithProgressAsync(
         string arguments,
-        IProgress<double>? progress = null,
+        IProgress<double>? progress,
+        IProgress<MakeMkvRipStats>? statsProgress,
+        MakeMkvStatsTracker tracker,
         CancellationToken ct = default)
     {
         var psi = new ProcessStartInfo
@@ -247,7 +254,7 @@ public class MakeMkvService : IMakeMkvService
         {
             if (string.IsNullOrEmpty(e.Data)) return;
             _ = _logService.LogAsync(e.Data);
-            ParseProgressLine(e.Data, progress);
+            ParseRipOutputLine(e.Data, progress, statsProgress, tracker);
         };
 
         process.ErrorDataReceived += (_, e) =>
@@ -266,17 +273,165 @@ public class MakeMkvService : IMakeMkvService
             process.Kill(entireProcessTree: true);
     }
 
-    private static void ParseProgressLine(string line, IProgress<double>? progress)
+    private static void ParseRipOutputLine(
+        string line,
+        IProgress<double>? progress,
+        IProgress<MakeMkvRipStats>? statsProgress,
+        MakeMkvStatsTracker tracker)
     {
-        // PRGV:current,total,max  – sub-task progress
-        var m = Regex.Match(line, @"PRGV:(\d+),(\d+),(\d+)");
-        if (m.Success
-            && int.TryParse(m.Groups[1].Value, out var cur)
-            && int.TryParse(m.Groups[3].Value, out var max)
-            && max > 0)
+        if (line.StartsWith("PRGV:"))
         {
-            progress?.Report((double)cur / max * 100.0);
+            // PRGV:current,total,max
+            // current = per-title progress, total = overall progress, max = scale
+            var m = Regex.Match(line, @"PRGV:(\d+),(\d+),(\d+)");
+            if (m.Success
+                && long.TryParse(m.Groups[1].Value, out var cur)
+                && long.TryParse(m.Groups[2].Value, out var tot)
+                && long.TryParse(m.Groups[3].Value, out var max)
+                && max > 0)
+            {
+                tracker.TitleProgressRaw   = cur;
+                tracker.OverallProgressRaw = tot;
+                tracker.ProgressMax        = max;
+                progress?.Report((double)tot / max * 100.0);
+                statsProgress?.Report(tracker.ToStats());
+            }
         }
+        else if (line.StartsWith("PRGC:"))
+        {
+            // PRGC:code,id,"message"  – current (per-title) bar label
+            var msg = ExtractLastQuotedValue(line);
+            if (!string.IsNullOrEmpty(msg))
+            {
+                tracker.TitleProgressLabel = msg;
+                tracker.ResetTitleTimer();
+                statsProgress?.Report(tracker.ToStats());
+            }
+        }
+        else if (line.StartsWith("PRGT:"))
+        {
+            // PRGT:code,id,"message"  – total (overall) bar label
+            var msg = ExtractLastQuotedValue(line);
+            if (!string.IsNullOrEmpty(msg))
+            {
+                tracker.OverallProgressLabel = msg;
+                statsProgress?.Report(tracker.ToStats());
+            }
+        }
+        else if (line.StartsWith("MSG:"))
+        {
+            // MSG:code,flags,count,"human message","format","param0",...
+            // The 4th field (index 3 after splitting) is the human-readable message.
+            var humanMsg = ExtractFirstQuotedValue(line);
+            if (string.IsNullOrEmpty(humanMsg)) return;
+
+            // ── Classify the message ──────────────────────────────────────
+            // Title skipped / added – add to messages list
+            if (humanMsg.Contains("was added") || humanMsg.Contains("was therefore skipped")
+                || humanMsg.Contains("Operation successfully completed")
+                || humanMsg.Contains("Saving") && humanMsg.Contains("titles into directory"))
+            {
+                tracker.Messages.Add(humanMsg);
+                statsProgress?.Report(tracker.ToStats());
+                return;
+            }
+
+            // Read-rate line: "6.3 M/s [4.7X]" appears somewhere in a MSG
+            var rateMatch = Regex.Match(humanMsg, @"\d+\.\d+\s*M/s\s*\[\d+\.?\d*X\]");
+            if (rateMatch.Success)
+            {
+                tracker.ReadRate = rateMatch.Value;
+                statsProgress?.Report(tracker.ToStats());
+                return;
+            }
+
+            // Source file (current VOB/IFO being read)
+            var srcMatch = Regex.Match(humanMsg,
+                @"([A-Za-z]:[/\\][^""]+\.(?:VOB|IFO|BUP|SSIF)|/[^""]+\.(?:VOB|IFO|BUP|SSIF))",
+                RegexOptions.IgnoreCase);
+            if (srcMatch.Success)
+            {
+                tracker.SourceFile = srcMatch.Value;
+                statsProgress?.Report(tracker.ToStats());
+                return;
+            }
+
+            // Output file (current MKV being saved)
+            var outMatch = Regex.Match(humanMsg,
+                @"([A-Za-z]:[/\\][^""]+\.mkv|/[^""]+\.mkv)",
+                RegexOptions.IgnoreCase);
+            if (outMatch.Success)
+            {
+                tracker.OutputFile = outMatch.Value;
+                // Attempt to read output size + free space from the filesystem
+                tracker.RefreshOutputSizeAndFreeSpace(outMatch.Value);
+                statsProgress?.Report(tracker.ToStats());
+            }
+        }
+        else if (line.StartsWith("CINFO:"))
+        {
+            // CINFO:code,flags,"value"
+            var parts = line.Substring("CINFO:".Length).Split(',');
+            if (parts.Length < 2) return;
+            if (!int.TryParse(parts[0], out var code)) return;
+            var value = parts.Length >= 3
+                ? parts[2].Trim('"')
+                : parts[1].Trim('"');
+
+            switch (code)
+            {
+                case 1:   // disc type / label
+                    if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(tracker.Source))
+                        tracker.Source = value;
+                    break;
+                case 2:   // disc name
+                    if (!string.IsNullOrEmpty(value))
+                        tracker.Source = value + (string.IsNullOrEmpty(tracker.Source)
+                                         ? string.Empty : $" ({tracker.Source})");
+                    break;
+                case 11:  // disc size in bytes
+                    if (long.TryParse(value, out var bytes) && bytes > 0)
+                        tracker.SourceSize = FormatBytes(bytes);
+                    break;
+                case 30:  // drive comment (sometimes contains drive model)
+                    if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(tracker.Source))
+                        tracker.Source = value;
+                    break;
+            }
+            statsProgress?.Report(tracker.ToStats());
+        }
+    }
+
+    // ── String extraction helpers ─────────────────────────────────────────────
+
+    /// <summary>Extract the human-readable message – the first quoted token in a MSG: line.</summary>
+    private static string ExtractFirstQuotedValue(string line)
+    {
+        // Skip past "MSG:code,flags,count," then grab the first "..."
+        var start = line.IndexOf('"');
+        if (start < 0) return string.Empty;
+        var end = line.IndexOf('"', start + 1);
+        if (end < 0) return string.Empty;
+        return line.Substring(start + 1, end - start - 1);
+    }
+
+    /// <summary>Extract the last quoted token (used for PRGC/PRGT labels).</summary>
+    private static string ExtractLastQuotedValue(string line)
+    {
+        var end = line.LastIndexOf('"');
+        if (end < 1) return string.Empty;
+        var start = line.LastIndexOf('"', end - 1);
+        if (start < 0) return string.Empty;
+        return line.Substring(start + 1, end - start - 1);
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes >= 1_073_741_824L)
+            return $"{bytes / 1_073_741_824.0:F1} G";
+        if (bytes >= 1_048_576L)
+            return $"{bytes / 1_048_576.0:F1} M";
+        return $"{bytes / 1_024.0:F1} K";
     }
 
     // ── Full output parser (TINFO + SINFO) ────────────────────────────────────
@@ -552,6 +707,108 @@ public class MakeMkvService : IMakeMkvService
 
         parts.Add(current.ToString());
         return parts.ToArray();
+    }
+
+    // ── Stats tracker ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Mutable state accumulated from MakeMKV robot-mode output lines.
+    /// Call <see cref="ToStats"/> to get an immutable snapshot.
+    /// </summary>
+    private sealed class MakeMkvStatsTracker
+    {
+        private readonly string _outputPath;
+
+        public string Source              { get; set; } = string.Empty;
+        public string SourceFile          { get; set; } = string.Empty;
+        public string SourceSize          { get; set; } = string.Empty;
+        public string ReadRate            { get; set; } = string.Empty;
+        public string OutputFile          { get; set; } = string.Empty;
+        public string OutputSize          { get; set; } = string.Empty;
+        public string FreeSpace           { get; set; } = string.Empty;
+
+        public string TitleProgressLabel  { get; set; } = "Saving to MKV file";
+        public string OverallProgressLabel { get; set; } = "Saving all titles to MKV files";
+
+        public long   TitleProgressRaw    { get; set; }
+        public long   OverallProgressRaw  { get; set; }
+        public long   ProgressMax         { get; set; } = 65536;
+
+        public readonly List<string> Messages = new();
+
+        private readonly DateTime _overallStart = DateTime.UtcNow;
+        private DateTime _titleStart            = DateTime.UtcNow;
+
+        public MakeMkvStatsTracker(string outputPath)
+        {
+            _outputPath = outputPath;
+        }
+
+        public void ResetTitleTimer() => _titleStart = DateTime.UtcNow;
+
+        public void RefreshOutputSizeAndFreeSpace(string filePath)
+        {
+            try
+            {
+                // Output file size
+                if (File.Exists(filePath))
+                    OutputSize = FormatBytesStatic(new FileInfo(filePath).Length);
+
+                // Free space on the output drive
+                var root = Path.GetPathRoot(filePath);
+                if (!string.IsNullOrEmpty(root) && Directory.Exists(root))
+                {
+                    var di = new DriveInfo(root);
+                    FreeSpace = FormatBytesStatic(di.AvailableFreeSpace);
+                }
+            }
+            catch { /* non-fatal */ }
+        }
+
+        public MakeMkvRipStats ToStats()
+        {
+            var now            = DateTime.UtcNow;
+            var overallElapsed = now - _overallStart;
+            var titleElapsed   = now - _titleStart;
+
+            double overallPct = ProgressMax > 0 ? (double)OverallProgressRaw / ProgressMax : 0;
+            double titlePct   = ProgressMax > 0 ? (double)TitleProgressRaw   / ProgressMax : 0;
+
+            TimeSpan overallRemaining = overallPct > 0.005
+                ? TimeSpan.FromSeconds(overallElapsed.TotalSeconds / overallPct * (1 - overallPct))
+                : TimeSpan.Zero;
+
+            TimeSpan titleRemaining = titlePct > 0.005
+                ? TimeSpan.FromSeconds(titleElapsed.TotalSeconds   / titlePct   * (1 - titlePct))
+                : TimeSpan.Zero;
+
+            return new MakeMkvRipStats
+            {
+                Source               = Source,
+                SourceFile           = SourceFile,
+                SourceSize           = SourceSize,
+                ReadRate             = ReadRate,
+                OutputFile           = OutputFile,
+                OutputSize           = OutputSize,
+                FreeSpace            = FreeSpace,
+                TitleProgressLabel   = TitleProgressLabel,
+                TitleProgressValue   = titlePct   * 100.0,
+                TitleElapsed         = titleElapsed,
+                TitleRemaining       = titleRemaining,
+                OverallProgressLabel = OverallProgressLabel,
+                OverallProgressValue = overallPct * 100.0,
+                OverallElapsed       = overallElapsed,
+                OverallRemaining     = overallRemaining,
+                Messages             = Messages.ToList()
+            };
+        }
+
+        private static string FormatBytesStatic(long bytes)
+        {
+            if (bytes >= 1_073_741_824L) return $"{bytes / 1_073_741_824.0:F1} G";
+            if (bytes >= 1_048_576L)     return $"{bytes / 1_048_576.0:F1} M";
+            return $"{bytes / 1_024.0:F1} K";
+        }
     }
 
     // ── Internal stream record ─────────────────────────────────────────────────

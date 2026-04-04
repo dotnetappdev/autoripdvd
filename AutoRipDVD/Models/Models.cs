@@ -209,9 +209,13 @@ public class RipJob
     public string IsoPath { get; set; } = string.Empty;
     public bool HasIso => !string.IsNullOrEmpty(IsoPath) && File.Exists(IsoPath);
 
+    /// <summary>Live MakeMKV stats reported during MKV creation (non-null while ripping).</summary>
+    public MakeMkvRipStats? RipStats { get; set; }
+
     public bool IsIndeterminate => Status == RipStatus.Detecting || Status == RipStatus.FetchingMetadata;
     public bool HasCompleted => CompletedAt.HasValue;
     public bool HasOutputPath => !string.IsNullOrEmpty(OutputPath);
+    public bool HasRipStats => RipStats?.HasStats == true;
 }
 
 public class TitleInfo

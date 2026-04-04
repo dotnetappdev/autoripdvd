@@ -358,6 +358,68 @@ public record TranscodePreset
     public string? CustomOptions  { get; set; }              // raw extra CLI args
 }
 
+// ── MakeMKV rip statistics (real-time stats during MKV creation) ──────────────
+
+/// <summary>
+/// Live statistics reported by MakeMKV during a disc-to-MKV rip.
+/// Mirrors the "Information" panel and dual progress bars shown in MakeMKV.
+/// </summary>
+public class MakeMkvRipStats
+{
+    // ── Information panel fields ─────────────────────────────────────────────
+    /// <summary>Drive / disc description (e.g. "DVD+R-DL TSSTcorp CDDVDW SE-S084F").</summary>
+    public string Source { get; set; } = string.Empty;
+    /// <summary>Current source file being read (e.g. "/VIDEO_TS/VTS_03_1.VOB").</summary>
+    public string SourceFile { get; set; } = string.Empty;
+    /// <summary>Total source size, formatted (e.g. "3935.0 M").</summary>
+    public string SourceSize { get; set; } = string.Empty;
+    /// <summary>Current read speed (e.g. "6.3 M/s [4.7X]").</summary>
+    public string ReadRate { get; set; } = string.Empty;
+    /// <summary>Current output MKV file path.</summary>
+    public string OutputFile { get; set; } = string.Empty;
+    /// <summary>Output size written so far (e.g. "703.3 M").</summary>
+    public string OutputSize { get; set; } = string.Empty;
+    /// <summary>Free space on output drive (e.g. "185.5 G").</summary>
+    public string FreeSpace { get; set; } = string.Empty;
+
+    // ── Per-title progress bar ───────────────────────────────────────────────
+    /// <summary>Label for the per-title bar (e.g. "Saving to MKV file").</summary>
+    public string TitleProgressLabel { get; set; } = "Saving to MKV file";
+    /// <summary>Per-title progress 0–100.</summary>
+    public double TitleProgressValue { get; set; }
+    public TimeSpan TitleElapsed { get; set; }
+    public TimeSpan TitleRemaining { get; set; }
+
+    // ── Overall progress bar ─────────────────────────────────────────────────
+    /// <summary>Label for the overall bar (e.g. "Saving all titles to MKV files").</summary>
+    public string OverallProgressLabel { get; set; } = "Saving all titles to MKV files";
+    /// <summary>Overall progress 0–100.</summary>
+    public double OverallProgressValue { get; set; }
+    public TimeSpan OverallElapsed { get; set; }
+    public TimeSpan OverallRemaining { get; set; }
+
+    // ── Log messages ─────────────────────────────────────────────────────────
+    /// <summary>Human-readable messages from MakeMKV (title added/skipped, completion, etc.).</summary>
+    public List<string> Messages { get; set; } = new();
+
+    // ── Computed display helpers ──────────────────────────────────────────────
+    public string TitleElapsedFormatted    => FormatTime(TitleElapsed);
+    public string TitleRemainingFormatted  => FormatTime(TitleRemaining);
+    public string OverallElapsedFormatted  => FormatTime(OverallElapsed);
+    public string OverallRemainingFormatted => FormatTime(OverallRemaining);
+
+    public bool HasStats =>
+        !string.IsNullOrEmpty(Source) || TitleProgressValue > 0 || OverallProgressValue > 0 || Messages.Count > 0;
+
+    private static string FormatTime(TimeSpan ts)
+    {
+        if (ts.TotalSeconds <= 0) return "0:00";
+        return ts.TotalHours >= 1
+            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
+    }
+}
+
 // ── Per-job transcode override ────────────────────────────────────────────────
 
 public class TranscodeJobSettings

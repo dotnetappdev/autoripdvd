@@ -295,8 +295,23 @@ public class RipJobQueue : IRipJobQueue
             // Rip
             await UpdateStatusAsync(job, RipStatus.Ripping, "Ripping disc...");
             await _soundService.PlayAsync(SoundEvent.RipStarted);
-            var ripProgress = new Progress<double>(p => { job.Progress = p * 0.7; _ = UpdateJobAsync(job); });
-            var ripOk = await _makeMkvService.RipTitlesAsync(job.Disc.DriveLetter, job.SelectedTitleIndices, tempPath, ripProgress);
+
+            var ripProgress = new Progress<double>(p =>
+            {
+                job.Progress = p * 0.7;
+                _ = UpdateJobAsync(job);
+            });
+
+            var statsProgress = new Progress<MakeMkvRipStats>(stats =>
+            {
+                job.RipStats         = stats;
+                job.CurrentOperation = BuildRipOperation(stats);
+                _ = UpdateJobAsync(job);
+            });
+
+            var ripOk = await _makeMkvService.RipTitlesAsync(
+                job.Disc.DriveLetter, job.SelectedTitleIndices, tempPath,
+                ripProgress, statsProgress, ct);
 
             if (!ripOk)
             {
@@ -466,6 +481,17 @@ public class RipJobQueue : IRipJobQueue
             await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
             await _soundService.PlayAsync(SoundEvent.DiscEjected);
         }
+    }
+
+    // ── Stats helpers ─────────────────────────────────────────────────────────
+
+    private static string BuildRipOperation(MakeMkvRipStats stats)
+    {
+        if (stats.OverallProgressValue > 0)
+            return $"{stats.OverallProgressLabel} ({stats.OverallProgressValue:F0}%)";
+        if (!string.IsNullOrEmpty(stats.TitleProgressLabel))
+            return stats.TitleProgressLabel;
+        return "Ripping disc…";
     }
 
     // ── Status helpers ────────────────────────────────────────────────────────
