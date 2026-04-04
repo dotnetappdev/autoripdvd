@@ -40,6 +40,7 @@ public partial class App : Application
                 services.AddSingleton<ISubtitleService, SubtitleService>();
                 services.AddSingleton<IDiscAnalyzerService, DiscAnalyzerService>();
                 services.AddSingleton<IIsoCreatorService, IsoCreatorService>();
+                services.AddSingleton<IDiscPreviewService, DiscPreviewService>();
 
                 // ── Transcoding ─────────────────────────────────────────────
                 services.AddSingleton<IHandBrakeService, HandBrakeService>();
@@ -57,6 +58,8 @@ public partial class App : Application
                 services.AddTransient<JobsViewModel>();
                 services.AddTransient<TitleSelectionViewModel>();
                 services.AddTransient<TranscodeViewModel>();
+                services.AddTransient<TrackSelectorViewModel>();
+                services.AddTransient<SubtitleLanguagePickerViewModel>();
 
                 // ── Views ───────────────────────────────────────────────────
                 services.AddTransient<MainWindow>();

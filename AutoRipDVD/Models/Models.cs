@@ -275,6 +275,15 @@ public class AppSettings
     public string MakeMkvDataDirectory { get; set; } = @"C:\Users\{USER}\.MakeMKV";
     public string LogPath { get; set; } = "";
     
+    // ── Preview / filmstrip settings ──────────────────────────────────────────
+    public int     FilmstripFrameCount    { get; set; } = 8;     // number of filmstrip thumbnails
+    public int     PreviewThumbnailWidth  { get; set; } = 320;   // filmstrip thumb width  (px)
+    public int     PreviewThumbnailHeight { get; set; } = 180;   // filmstrip thumb height (px)
+    public int     PreviewWidth           { get; set; } = 640;   // main preview width  (px)
+    public int     PreviewHeight          { get; set; } = 360;   // main preview height (px)
+    public bool    AutoLoadPreview        { get; set; } = true;
+    public bool    PreviewSubtitleOverlay { get; set; } = true;  // show subtitle text in preview
+
     // API Keys
     public string OmdbApiKey { get; set; } = string.Empty;
     public string TvdbApiKey { get; set; } = string.Empty;

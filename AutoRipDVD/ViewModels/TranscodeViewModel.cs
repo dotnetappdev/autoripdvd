@@ -20,6 +20,12 @@ public partial class TranscodeViewModel : ObservableObject
     private readonly ISettingsService        _settings;
     private readonly ILogService             _log;
 
+    // ── Embedded sub-ViewModels ───────────────────────────────────────────────
+    // These are exposed so the UI can bind them into embedded panels without
+    // needing separate page navigation.
+    public TrackSelectorViewModel         TrackSelector { get; }
+    public SubtitleLanguagePickerViewModel LanguagePicker { get; }
+
     // ── Presets ────────────────────────────────────────────────────────────────
 
     [ObservableProperty] private ObservableCollection<string> _presetCategories = new();
@@ -173,17 +179,21 @@ public partial class TranscodeViewModel : ObservableObject
     // ── Constructor ───────────────────────────────────────────────────────────
 
     public TranscodeViewModel(
-        IHandBrakeService       handBrake,
-        ITranscodePresetService presets,
-        IFfprobeService         ffprobe,
-        ISettingsService        settings,
-        ILogService             log)
+        IHandBrakeService         handBrake,
+        ITranscodePresetService   presets,
+        IFfprobeService           ffprobe,
+        ISettingsService          settings,
+        ILogService               log,
+        TrackSelectorViewModel    trackSelector,
+        SubtitleLanguagePickerViewModel languagePicker)
     {
-        _handBrake = handBrake;
-        _presets   = presets;
-        _ffprobe   = ffprobe;
-        _settings  = settings;
-        _log       = log;
+        _handBrake     = handBrake;
+        _presets       = presets;
+        _ffprobe       = ffprobe;
+        _settings      = settings;
+        _log           = log;
+        TrackSelector  = trackSelector;
+        LanguagePicker = languagePicker;
     }
 
     // ── Initialization ────────────────────────────────────────────────────────
@@ -222,30 +232,35 @@ public partial class TranscodeViewModel : ObservableObject
     [RelayCommand]
     public async Task LoadSourceAsync(string filePath)
     {
-        SourceFile = filePath;
+        SourceFile    = filePath;
+        OutputFile    = string.IsNullOrEmpty(OutputFile)
+            ? Path.ChangeExtension(filePath, ".out.mkv") : OutputFile;
         StatusMessage = "Analysing source file…";
 
-        var info = await _ffprobe.AnalyseFileAsync(filePath);
-        SourceInfo   = info;
-        HasSourceInfo = info != null;
+        // Delegate full analysis (ffprobe + filmstrip) to TrackSelectorViewModel
+        await TrackSelector.LoadSourceAsync(filePath);
 
-        if (info != null)
+        SourceInfo    = TrackSelector.MediaInfo;
+        HasSourceInfo = SourceInfo != null;
+
+        if (SourceInfo != null)
         {
-            // Auto-populate audio / subtitle track selections
+            // Mirror track collections for backwards compat with existing binding paths
             AudioTracks.Clear();
-            foreach (var a in info.AudioStreams)
+            foreach (var a in SourceInfo.AudioStreams)
                 AudioTracks.Add(new AudioTrackSelection(a) { IsSelected = true });
 
             SubtitleTracks.Clear();
-            foreach (var s in info.SubtitleStreams)
+            foreach (var s in SourceInfo.SubtitleStreams)
                 SubtitleTracks.Add(new SubtitleTrackSelection(s) { IsSelected = true });
 
-            StatusMessage = $"Source: {info.PrimaryVideo?.ResolutionLabel ?? "?"} | " +
-                            $"{info.AudioTrackCount} audio | {info.SubtitleTrackCount} subtitle tracks";
+            StatusMessage = $"Source: {SourceInfo.PrimaryVideo?.ResolutionLabel ?? "?"} | " +
+                            $"{SourceInfo.AudioTrackCount} audio | " +
+                            $"{SourceInfo.SubtitleTrackCount} subtitle track(s)";
         }
         else
         {
-            StatusMessage = "Could not analyse source (ffprobe not configured)";
+            StatusMessage = "Could not analyse source (configure ffprobe path in Settings)";
         }
 
         OnPropertyChanged(nameof(CanEncode));
@@ -465,6 +480,13 @@ public partial class TranscodeViewModel : ObservableObject
 
     private TranscodeJobSettings BuildJobSettings()
     {
+        // If the TrackSelectorViewModel has a loaded source, its selections are
+        // the authoritative per-track choices (the user may have used the DVD Shrink
+        // panel to toggle individual tracks and set burn-in targets).
+        if (TrackSelector.HasSource)
+            return TrackSelector.BuildJobSettings();
+
+        // Fallback: use the simple track lists in this ViewModel
         var js = new TranscodeJobSettings { UseGlobalSettings = false };
 
         js.AudioTrackIndices = AudioTracks
