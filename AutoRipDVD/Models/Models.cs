@@ -47,6 +47,7 @@ public enum RipStatus
     FetchingMetadata,
     Ripping,
     Transcoding,
+    CreatingIso,
     Completed,
     Failed,
     Cancelled
@@ -204,6 +205,10 @@ public class RipJob
     public List<TitleInfo> Titles { get; set; } = new();
     public List<int> SelectedTitleIndices { get; set; } = new();
     
+    // ISO output (populated when AutoCreateIso is enabled)
+    public string IsoPath { get; set; } = string.Empty;
+    public bool HasIso => !string.IsNullOrEmpty(IsoPath) && File.Exists(IsoPath);
+
     public bool IsIndeterminate => Status == RipStatus.Detecting || Status == RipStatus.FetchingMetadata;
     public bool HasCompleted => CompletedAt.HasValue;
     public bool HasOutputPath => !string.IsNullOrEmpty(OutputPath);
@@ -379,6 +384,16 @@ public class AppSettings
     public bool CopyLogsToSpecifiedLocation { get; set; } = false;
     public bool ClearLogsOlderThan30Days { get; set; } = true;
     public string CustomLogLocation { get; set; } = string.Empty;
+
+    // ── ISO / Disc image settings ─────────────────────────────────────────────
+    public bool AutoCreateIso { get; set; } = false;
+    public IsoCreationMode DefaultIsoMode { get; set; } = IsoCreationMode.RawSectorCopy;
+    public string IsoOutputPath { get; set; } = string.Empty;  // empty = use OutputPath
+    public bool CreateIsoInParallel { get; set; } = false;     // rip MKV + ISO simultaneously
+    public bool VerifyIsoAfterCreation { get; set; } = false;  // compare sector count
+    public string ImgBurnPath { get; set; } = @"C:\Program Files (x86)\ImgBurn\ImgBurn.exe";
+    public string MkisofsPath { get; set; } = string.Empty;    // auto-detected if empty
+    public bool EjectAfterIso { get; set; } = true;
     
     // Notifications
     public bool EnableNotifications { get; set; } = true;

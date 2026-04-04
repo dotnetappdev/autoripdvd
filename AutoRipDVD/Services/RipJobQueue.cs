@@ -42,6 +42,7 @@ public class RipJobQueue : IRipJobQueue
     private readonly IDatabase _database;
     private readonly IDiscAnalyzerService _discAnalyzer;
     private readonly ITranscodePresetService _presets;
+    private readonly IIsoCreatorService _isoCreator;
 
     // Auto-rip enable/disable toggle (separate from settings so we can start/stop at runtime)
     private bool _autoRipActive;
@@ -63,7 +64,8 @@ public class RipJobQueue : IRipJobQueue
         ISoundService soundService,
         IDatabase database,
         IDiscAnalyzerService discAnalyzer,
-        ITranscodePresetService presets)
+        ITranscodePresetService presets,
+        IIsoCreatorService isoCreator)
     {
         _makeMkvService      = makeMkvService;
         _handBrakeService    = handBrakeService;
@@ -78,6 +80,7 @@ public class RipJobQueue : IRipJobQueue
         _database            = database;
         _discAnalyzer        = discAnalyzer;
         _presets             = presets;
+        _isoCreator          = isoCreator;
 
         _autoRipActive = settings.Settings.AutoRip;
         _discDetection.DiscInserted += OnDiscInserted;
@@ -305,8 +308,12 @@ public class RipJobQueue : IRipJobQueue
 
             if (ct.IsCancellationRequested) { await CancelJobAsync(job); return; }
 
-            // Eject
-            if (_settings.Settings.EjectWhenComplete)
+            // ── ISO creation (before eject, disc still in drive) ──────────────
+            if (_settings.Settings.AutoCreateIso)
+                await CreateIsoForJobAsync(job, ct);
+
+            // Eject (after ISO is done so the disc is still accessible during ISO creation)
+            if (_settings.Settings.EjectWhenComplete && !_settings.Settings.CreateIsoInParallel)
             {
                 await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
                 await _logService.LogAsync($"Ejected {job.Disc.DriveLetter}");
@@ -409,6 +416,55 @@ public class RipJobQueue : IRipJobQueue
         else
         {
             return _fileNaming.GetMovieFilePath(meta, outputRoot, ext);
+        }
+    }
+
+    // ── ISO creation helper ───────────────────────────────────────────────────
+
+    private async Task CreateIsoForJobAsync(RipJob job, CancellationToken ct)
+    {
+        var s = _settings.Settings;
+
+        // Determine ISO output path
+        var isoRoot = string.IsNullOrWhiteSpace(s.IsoOutputPath) ? s.OutputPath : s.IsoOutputPath;
+        Directory.CreateDirectory(isoRoot);
+
+        var discName = job.Metadata?.Title.IfEmpty(job.Disc.VolumeLabel)
+                       ?? job.Disc.VolumeLabel.IfEmpty("disc");
+        var safeTitle = string.Join("_", discName.Split(Path.GetInvalidFileNameChars()));
+        var isoFileName = $"{safeTitle}.iso";
+        var isoPath     = Path.Combine(isoRoot, isoFileName);
+
+        await UpdateStatusAsync(job, RipStatus.CreatingIso, $"Creating ISO image: {isoFileName}");
+
+        var isoProgress = new Progress<IsoProgress>(p =>
+        {
+            job.CurrentOperation = p.StatusMessage;
+            job.Progress         = p.PercentComplete;
+            _ = UpdateJobAsync(job);
+        });
+
+        var result = await _isoCreator.CreateIsoAsync(
+            job.Disc, isoPath, s.DefaultIsoMode, isoProgress, ct);
+
+        if (result.Success)
+        {
+            job.IsoPath = result.IsoPath;
+            await _logService.LogAsync($"ISO created: {result.FormattedSize} → {result.IsoPath}");
+            await _notificationService.SendAsync("ISO Created",
+                $"✓ {discName} ({result.FormattedSize})");
+        }
+        else
+        {
+            await _logService.LogAsync($"ISO creation failed: {result.ErrorMessage}");
+            // Non-fatal – rip can still continue
+        }
+
+        // Eject after ISO if that option is set
+        if (s.EjectAfterIso && result.Success)
+        {
+            await _discDetection.EjectDiscAsync(job.Disc.DriveLetter);
+            await _soundService.PlayAsync(SoundEvent.DiscEjected);
         }
     }
 

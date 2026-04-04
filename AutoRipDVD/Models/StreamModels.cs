@@ -2,6 +2,20 @@ using System.Text.Json.Serialization;
 
 namespace AutoRipDVD.Models;
 
+// ── ISO creation mode (mirrors IsoCreatorService.IsoCreationMode) ────────────
+// Defined here so AppSettings (in Models namespace) can reference it without
+// creating a circular dependency on the Services namespace.
+
+public enum IsoCreationMode
+{
+    /// <summary>Raw Win32 sector-by-sector copy (fast, encrypted data).</summary>
+    RawSectorCopy,
+    /// <summary>MakeMKV decrypt backup → mkisofs ISO (DRM-free, slower).</summary>
+    MakeMkvDecrypted,
+    /// <summary>ImgBurn CLI – handles ARccOS bad sectors.</summary>
+    ImgBurn
+}
+
 // ── Output format ─────────────────────────────────────────────────────────────
 
 public enum OutputFormat
