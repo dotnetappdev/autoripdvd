@@ -49,7 +49,8 @@ param(
     [string] $CertPath     = '',
     [string] $CertPassword = '',
     [string] $OutputDir    = "$PSScriptRoot\dist",
-    [switch] $Publish
+  [switch] $Publish,
+  [switch] $InstallWindowsAppRuntime
 )
 
 Set-StrictMode -Version Latest
@@ -208,6 +209,36 @@ Then configure your Partner Center credentials:
 # ── Done ──────────────────────────────────────────────────────────────────────
 
 Write-Host "`n✓ Done!  Package: $MsixPath" -ForegroundColor Green
+
+# ── Optional: ensure Windows App Runtime (1.5) is installed for side-loading ──
+if ($InstallWindowsAppRuntime) {
+  Write-Host "`n[Extra] Verifying Windows App Runtime 1.5 is installed..." -ForegroundColor Yellow
+
+  $installed = Get-AppxPackage -Name "Microsoft.WindowsAppRuntime.1.5" -ErrorAction SilentlyContinue
+  if ($installed) {
+    Write-Host "  Windows App Runtime 1.5 already installed." -ForegroundColor Green
+  }
+  else {
+    Write-Host "  Windows App Runtime 1.5 not found. Attempting to install via winget..." -ForegroundColor Cyan
+
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+      Write-Warning "winget not found on this system. Please install winget or install the Windows App Runtime manually."
+    }
+    else {
+      try {
+        Start-Process -FilePath $winget.Source -ArgumentList 'install --id Microsoft.WindowsAppRuntime -e' -Verb RunAs -Wait
+        Write-Host "  winget install finished. Re-checking runtime..." -ForegroundColor Cyan
+        $installed2 = Get-AppxPackage -Name "Microsoft.WindowsAppRuntime.1.5" -ErrorAction SilentlyContinue
+        if ($installed2) { Write-Host "  Windows App Runtime 1.5 installed successfully." -ForegroundColor Green }
+        else { Write-Warning "  Installation finished but runtime still not detected. Please verify manually." }
+      }
+      catch {
+        Write-Warning "Failed to invoke winget installer: $_"
+      }
+    }
+  }
+}
 
 # ── Helper: generate a template appxmanifest ──────────────────────────────────
 

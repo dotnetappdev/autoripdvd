@@ -173,6 +173,12 @@ The installer will:
 AutoRipDVD-Setup-2.1.0.exe   — standard Inno Setup installer
 ```
 
+If you prefer to install the Windows App Runtime manually (or via package manager), run:
+
+```powershell
+winget install --id Microsoft.WindowsAppRuntime -e
+```
+
 ### Option B — Windows Store / MSIX
 
 For enterprise or Microsoft Store distribution, use the MSIX packaging script:

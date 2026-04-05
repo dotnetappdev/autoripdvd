@@ -35,6 +35,8 @@
 ; Prerequisite download URLs (pinned versions — update when bumping .NET / AppSDK)
 #define DotNetUrl  "https://download.visualstudio.microsoft.com/download/pr/dotnet-runtime-10.0.0-win-x64.exe"
 #define WinAppSdkUrl "https://aka.ms/windowsappsdk/1.5/1.5.240311000/windowsappruntimeinstall-x64.exe"
+; Alternative: install Windows App Runtime via winget
+;   winget install --id Microsoft.WindowsAppRuntime -e
 
 ; ── [Setup] ──────────────────────────────────────────────────────────────────
 
