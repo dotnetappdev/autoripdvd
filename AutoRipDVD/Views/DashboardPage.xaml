@@ -11,10 +11,12 @@
     <Page.Resources>
         <local:BoolToVisibilityConverter        x:Key="BoolToVisibilityConverter"/>
         <local:BoolToVisibilityInverseConverter x:Key="BoolToVisibilityInverseConverter"/>
+        <local:BoolInverseConverter             x:Key="BoolInverseConverter"/>
     </Page.Resources>
 
     <Grid Padding="24">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -85,8 +87,94 @@
             </StackPanel>
         </Grid>
 
+        <!-- ══ Rip Options ══════════════════════════════════════════════════ -->
+        <Border Grid.Row="1" Margin="0,0,0,16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <Grid ColumnSpacing="24" RowSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Content Type -->
+                <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Content Type" FontWeight="SemiBold" FontSize="13"/>
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <RadioButton x:Name="MovieRadio"
+                                     Content="Movie"
+                                     GroupName="ContentType"
+                                     Checked="ContentType_Checked"/>
+                        <RadioButton x:Name="TvSeriesRadio"
+                                     Content="TV Series"
+                                     GroupName="ContentType"
+                                     Checked="ContentType_Checked"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Output Path Overrides (per-media) -->
+                <StackPanel Grid.Column="1" Spacing="6">
+                    <TextBlock FontWeight="SemiBold" FontSize="13">
+                        <Run Text="Output Path"/>
+                        <Run Text="  (per-media overrides, leave blank to use Settings path)"
+                             Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                             FontWeight="Normal" FontSize="11"/>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="MoviesOutputPathBox" Width="420"
+                                 PlaceholderText="{x:Bind ViewModel.EffectiveOutputPath, Mode=OneWay}"
+                                 Text="{x:Bind ViewModel.MoviesOutputPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{x:Bind ViewModel.IsMovieType, Mode=OneWay}"
+                                 LostFocus="MoviesOutputPathBox_LostFocus"/>
+                        <Button x:Name="BrowseMoviesBtn" Click="BrowseMoviesOutputPath_Click" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                                <TextBlock Text="Browse"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="TvOutputPathBox" Width="420"
+                                 PlaceholderText="{x:Bind ViewModel.EffectiveOutputPath, Mode=OneWay}"
+                                 Text="{x:Bind ViewModel.TvOutputPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 IsEnabled="{x:Bind ViewModel.IsMovieType, Converter={StaticResource BoolInverseConverter}, Mode=OneWay}"
+                                 LostFocus="TvOutputPathBox_LostFocus"/>
+                        <Button x:Name="BrowseTvBtn" Click="BrowseTvOutputPath_Click" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                                <TextBlock Text="Browse"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Browse / Renamer column -->
+                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="BrowseOutputBtn" Click="BrowseOutputPath_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                            <TextBlock Text="Set Global Output"/>
+                        </StackPanel>
+                        </Button>
+                        <ComboBox x:Name="RecentFoldersCombo" Width="280" PlaceholderText="Recent folders" SelectionChanged="RecentFoldersCombo_SelectionChanged"/>
+                    </StackPanel>
+                    <Button x:Name="OpenRenamerButton" Click="OpenRenamer_Click" ToolTipService.ToolTip="Open renamer / matcher dialog">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE8EF;" FontSize="14"/>
+                            <TextBlock Text="Rename Files"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- ══ Active Jobs ═══════════════════════════════════════════════════ -->
-        <ScrollViewer Grid.Row="1">
+        <ScrollViewer Grid.Row="2">
             <StackPanel Spacing="12">
                 <TextBlock Text="Active Jobs" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,8"/>
 
@@ -301,7 +389,7 @@
                         Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                         BorderThickness="1" CornerRadius="8"
-                        Visibility="{x:Bind HasNoActiveJobs, Mode=OneWay}">
+                        Visibility="{x:Bind ViewModel.HasNoActiveJobs, Mode=OneWay}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
                         <FontIcon Glyph="&#xE7C1;" FontSize="48"
                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
@@ -318,13 +406,13 @@
         </ScrollViewer>
 
         <!-- ══ Recent Logs header ════════════════════════════════════════════ -->
-        <TextBlock Grid.Row="2"
+        <TextBlock Grid.Row="3"
                    Text="Recent Logs"
                    Style="{StaticResource SubtitleTextBlockStyle}"
                    Margin="0,20,0,10"/>
 
         <!-- ══ Recent Logs ═══════════════════════════════════════════════════ -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1" CornerRadius="8">

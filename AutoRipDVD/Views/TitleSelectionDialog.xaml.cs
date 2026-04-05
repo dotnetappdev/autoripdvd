@@ -26,12 +26,42 @@ public sealed partial class TitleSelectionDialog : ContentDialog
 
     // ── x:Bind function helpers ───────────────────────────────────────────────
 
-    private string GetMetadataMessage(MediaMetadata? metadata)
+    public string GetMetadataMessage(MediaMetadata? metadata)
     {
         if (metadata == null) return string.Empty;
         return metadata.MediaType == MediaType.TVShow
             ? $"{metadata.Title} – Season {metadata.Season}"
             : $"{metadata.Title} ({metadata.Year})";
+    }
+
+    private async void BrowseOutputOverride_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (ViewModel == null) return;
+        try
+        {
+            var picker = new Windows.Storage.Pickers.FolderPicker();
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            }
+            catch { }
+
+            var folder = await picker.PickSingleFolderAsync();
+            if (folder == null) return;
+            ViewModel.OutputOverride = folder.Path;
+        }
+        catch
+        {
+            var dlg = new ContentDialog
+            {
+                Title = "Folder picker unavailable",
+                Content = "No system folder picker could be opened. Please paste the path manually.",
+                PrimaryButtonText = "OK",
+                XamlRoot = this.XamlRoot
+            };
+            _ = await dlg.ShowAsync();
+        }
     }
 }
 

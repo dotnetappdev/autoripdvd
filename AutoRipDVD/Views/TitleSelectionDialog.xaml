@@ -258,6 +258,20 @@
                                    TextTrimming="CharacterEllipsis"
                                    ToolTipService.ToolTip="{x:Bind ViewModel.OutputFolderDisplay, Mode=OneWay}"/>
                     </Border>
+                    <!-- Media type override + output override -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <CheckBox Content="This disc is a TV show (use TV output folder)"
+                                  IsChecked="{x:Bind ViewModel.IsTvSeries, Mode=TwoWay}"/>
+                    </StackPanel>
+                    <Grid ColumnSpacing="8" Margin="0,6,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{x:Bind ViewModel.OutputOverride, Mode=TwoWay}"
+                                 PlaceholderText="Optional: override output folder for this job"/>
+                        <Button Grid.Column="1" Content="..." Click="BrowseOutputOverride_Click"/>
+                    </Grid>
                 </StackPanel>
 
                 <!-- Divider -->

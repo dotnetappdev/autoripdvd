@@ -88,6 +88,22 @@ A professional, open-source Windows application that combines the best of **Make
 
 ---
 
+## Renamer / Matcher (Batch Mode)
+
+v2.1 introduces a built-in renamer and metadata matcher available from the Dashboard ("Rename Files"). Features:
+
+- Batch selection: pick multiple files from a folder and match them in one operation.
+- Metadata sources: OMDb, TMDb, TVDB (priority configurable). The tool will auto-match using the existing metadata pipeline (OMDb → TMDb → TVDB) and surface candidate matches.
+- Candidate preview: poster, year, and short synopsis are shown for each candidate; candidates are ordered by rating/popularity.
+- Mapping preview: build a batch mapping list (source → proposed destination), edit proposed destinations per-file before applying, and apply all mappings in one step.
+- Undo: undo the last applied batch (restores moved files and any replaced files from backups).
+- Integration: proposed destination paths use the same `IFileNamingService` rules and `CreatePlexFolderStructure` setting used by rip jobs.
+
+Notes
+- This feature requires API keys for some metadata providers; enter API keys on the Settings page.
+- The renamer is conservative by default: when a destination file already exists it's moved to a timestamped `.backup.` file before the rename is applied.
+
+
 ## What's New in v2.0
 
 ### Disc Analysis Engine

@@ -44,6 +44,7 @@ public class SettingsService : ISettingsService
             s.MakeMkvPath   = Get("MakeMkvPath",   s.MakeMkvPath);
             s.HandBrakePath = Get("HandBrakePath",  s.HandBrakePath);
             s.OutputPath    = Get("OutputPath",     s.OutputPath);
+            s.DashboardOutputPath = Get("DashboardOutputPath", string.Empty);
             s.TempPath      = Get("TempPath",       s.TempPath);
             s.MakeMkvDataDirectory = Get("MakeMkvDataDirectory", s.MakeMkvDataDirectory);
             s.LogPath       = Get("LogPath",        s.LogPath);
@@ -133,6 +134,13 @@ public class SettingsService : ISettingsService
             s.MoviesOutputPath       = Get("MoviesOutputPath",       string.Empty);
             s.TvOutputPath           = Get("TvOutputPath",           string.Empty);
             s.MusicOutputPath        = Get("MusicOutputPath",        string.Empty);
+
+            // Recent dashboard output folders (stored as pipe-separated string)
+            var recent = Get("RecentOutputFolders", string.Empty);
+            s.RecentOutputFolders = string.IsNullOrWhiteSpace(recent)
+                ? new List<string>()
+                : recent.Split('|').Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            
 
             // UI
             s.Theme             = Get("Theme",             "System");
@@ -246,6 +254,8 @@ public class SettingsService : ISettingsService
             ["MoviesOutputPath"]      = s.MoviesOutputPath,
             ["TvOutputPath"]          = s.TvOutputPath,
             ["MusicOutputPath"]       = s.MusicOutputPath,
+            ["DashboardOutputPath"]   = s.DashboardOutputPath,
+            ["RecentOutputFolders"]   = string.Join('|', s.RecentOutputFolders ?? new List<string>()),
 
             // UI
             ["Theme"]               = s.Theme,

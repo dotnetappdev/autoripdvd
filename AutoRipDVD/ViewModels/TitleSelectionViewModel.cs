@@ -16,6 +16,9 @@ public partial class TitleSelectionViewModel : ObservableObject
 
     // ── Scan inputs ───────────────────────────────────────────────────────────
 
+    /// <summary>Pre-set by the dashboard Movie/TV toggle before the dialog opens.</summary>
+    public MediaType DefaultMediaType { get; set; } = MediaType.Movie;
+
     [ObservableProperty]
     private string _driveLetter = string.Empty;
 
@@ -33,6 +36,12 @@ public partial class TitleSelectionViewModel : ObservableObject
 
     [ObservableProperty]
     private MediaMetadata? _detectedMetadata;
+
+    partial void OnDetectedMetadataChanged(MediaMetadata? value)
+    {
+        if (value != null)
+            IsTvSeries = value.Type == MediaType.TVShow;
+    }
 
     [ObservableProperty]
     private bool _autoFilterEnabled = true;
@@ -63,6 +72,13 @@ public partial class TitleSelectionViewModel : ObservableObject
     [ObservableProperty]
     private string _outputFolderDisplay = string.Empty;
 
+    // User-chosen override: treat this disc as a TV series when set, and optionally override output folder
+    [ObservableProperty]
+    private bool _isTvSeries = false;
+
+    [ObservableProperty]
+    private string _outputOverride = string.Empty;
+
     // ── Selection count (status bar) ──────────────────────────────────────────
 
     [ObservableProperty]
@@ -91,6 +107,7 @@ public partial class TitleSelectionViewModel : ObservableObject
         _logService         = logService;
 
         OutputFolderDisplay = _settings.Settings.OutputPath;
+        // Leave output override empty by default; pre-select TV checkbox if detected metadata later
     }
 
     // ── Scan disc ─────────────────────────────────────────────────────────────

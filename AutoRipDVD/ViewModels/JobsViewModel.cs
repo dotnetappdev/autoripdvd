@@ -3,12 +3,14 @@ using CommunityToolkit.Mvvm.Input;
 using AutoRipDVD.Models;
 using AutoRipDVD.Services;
 using System.Collections.ObjectModel;
+using Microsoft.UI.Dispatching;
 
 namespace AutoRipDVD.ViewModels;
 
-public partial class JobsViewModel : ObservableObject
+public partial class JobsViewModel : ObservableObject, IDisposable
 {
     private readonly IRipJobQueue _jobQueue;
+    private readonly DispatcherQueue _dispatcherQueue;
 
     [ObservableProperty]
     private ObservableCollection<RipJob> _allJobs = new();
@@ -19,22 +21,27 @@ public partial class JobsViewModel : ObservableObject
     public JobsViewModel(IRipJobQueue jobQueue)
     {
         _jobQueue = jobQueue;
-        _jobQueue.JobAdded += OnJobChanged;
-        _jobQueue.JobUpdated += OnJobChanged;
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+
+        _jobQueue.JobAdded    += OnJobChanged;
+        _jobQueue.JobUpdated  += OnJobChanged;
         _jobQueue.JobCompleted += OnJobChanged;
-        
+
         _ = LoadJobsAsync();
     }
 
     private async Task LoadJobsAsync()
     {
         var jobs = await _jobQueue.GetAllJobsAsync();
-        AllJobs = new ObservableCollection<RipJob>(jobs);
+        _dispatcherQueue.TryEnqueue(() =>
+        {
+            AllJobs = new ObservableCollection<RipJob>(jobs);
+        });
     }
 
     private void OnJobChanged(object? sender, RipJob job)
     {
-        App.MainWindow.DispatcherQueue.TryEnqueue(async () =>
+        _dispatcherQueue.TryEnqueue(async () =>
         {
             await LoadJobsAsync();
         });
@@ -50,5 +57,12 @@ public partial class JobsViewModel : ObservableObject
     private void ViewJob(RipJob job)
     {
         SelectedJob = job;
+    }
+
+    public void Dispose()
+    {
+        _jobQueue.JobAdded    -= OnJobChanged;
+        _jobQueue.JobUpdated  -= OnJobChanged;
+        _jobQueue.JobCompleted -= OnJobChanged;
     }
 }

@@ -205,9 +205,15 @@ public class RipJob
     public List<TitleInfo> Titles { get; set; } = new();
     public List<int> SelectedTitleIndices { get; set; } = new();
     
+    /// <summary>Per-job output path override set from the dashboard. Empty = use per-media settings path.</summary>
+    public string OutputPathOverride { get; set; } = string.Empty;
+
     // ISO output (populated when AutoCreateIso is enabled)
     public string IsoPath { get; set; } = string.Empty;
     public bool HasIso => !string.IsNullOrEmpty(IsoPath) && File.Exists(IsoPath);
+
+    // Optional override for output root for manual jobs (if user selected a custom folder)
+    public string OutputRootOverride { get; set; } = string.Empty;
 
     /// <summary>Live MakeMKV stats reported during MKV creation (non-null while ripping).</summary>
     public MakeMkvRipStats? RipStats { get; set; }
@@ -275,6 +281,10 @@ public partial class AppSettings
     public string MkvExtractPath { get; set; } = @"C:\Program Files\MKVToolNix\mkvextract.exe";
     public string TesseractPath { get; set; } = @"C:\Program Files\Tesseract-OCR\tesseract.exe";
     public string OutputPath { get; set; } = @"D:\Ripped";
+    // Dashboard-level quick output path (acts like MakeMKV output folder selector)
+    public string DashboardOutputPath { get; set; } = string.Empty;
+    // Recent dashboard-selected output folders (most-recent first)
+    public List<string> RecentOutputFolders { get; set; } = new();
     // Per-media output folders (optional). If empty, `OutputPath` is used.
     public string MoviesOutputPath { get; set; } = string.Empty;
     public string TvOutputPath     { get; set; } = string.Empty;

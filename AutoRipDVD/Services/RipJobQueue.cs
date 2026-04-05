@@ -11,7 +11,7 @@ public interface IRipJobQueue
     event EventHandler<RipJob>? JobCompleted;
 
     Task<Guid> AddJobAsync(RipJob job);
-    Task<Guid> AddManualJobAsync(DiscInfo disc, MediaMetadata? metadata, List<TitleInfo> selectedTitles);
+    Task<Guid> AddManualJobAsync(DiscInfo disc, MediaMetadata? metadata, List<TitleInfo> selectedTitles, bool? forceTv = null, string? outputRootOverride = null);
     Task UpdateJobAsync(RipJob job);
     Task<RipJob?> GetJobAsync(Guid id);
     Task<List<RipJob>> GetAllJobsAsync();
@@ -98,6 +98,15 @@ public class RipJobQueue : IRipJobQueue
         if (!_autoRipActive) return;
 
         var job = new RipJob { Disc = disc, Status = RipStatus.Pending };
+
+        // Apply dashboard quick-output override if set (acts like MakeMKV output folder selector)
+        try
+        {
+            var dashboard = _settings.Settings.DashboardOutputPath;
+            if (!string.IsNullOrWhiteSpace(dashboard))
+                job.OutputPathOverride = dashboard;
+        }
+        catch { /* ignore if settings unavailable */ }
         await AddJobAsync(job);
         _ = ProcessJobAsync(job);
     }
@@ -113,7 +122,7 @@ public class RipJobQueue : IRipJobQueue
         return job.Id;
     }
 
-    public async Task<Guid> AddManualJobAsync(DiscInfo disc, MediaMetadata? metadata, List<TitleInfo> selectedTitles)
+    public async Task<Guid> AddManualJobAsync(DiscInfo disc, MediaMetadata? metadata, List<TitleInfo> selectedTitles, bool? forceTv = null, string? outputRootOverride = null)
     {
         var job = new RipJob
         {
@@ -123,6 +132,16 @@ public class RipJobQueue : IRipJobQueue
             Titles               = selectedTitles,
             SelectedTitleIndices = selectedTitles.Select(t => t.Index).ToList()
         };
+
+        // Apply overrides from manual dialog
+        if (!string.IsNullOrWhiteSpace(outputRootOverride))
+            job.OutputRootOverride = outputRootOverride!;
+
+        if (forceTv.HasValue)
+        {
+            job.Metadata ??= new MediaMetadata { Type = MediaType.Movie };
+            job.Metadata.Type = forceTv.Value ? MediaType.TVShow : MediaType.Movie;
+        }
 
         _jobs.TryAdd(job.Id, job);
         JobAdded?.Invoke(this, job);
@@ -341,7 +360,7 @@ public class RipJobQueue : IRipJobQueue
             if (_settings.Settings.TranscodeAfterRip)
             {
                 await UpdateStatusAsync(job, RipStatus.Transcoding, "Transcoding...");
-                var outRoot = _settings.Settings.OutputPath;
+                var outRoot = ResolveOutputRoot(job);
                 int fileIdx = 0;
 
                 foreach (var mkv in mkvFiles)
@@ -388,7 +407,7 @@ public class RipJobQueue : IRipJobQueue
             else
             {
                 // Move MKV files directly
-                var outRoot = _settings.Settings.OutputPath;
+                var outRoot = ResolveOutputRoot(job);
                 int fileIdx = 0;
 
                 foreach (var mkv in mkvFiles)
@@ -441,6 +460,33 @@ public class RipJobQueue : IRipJobQueue
                 try { Directory.Delete(tempPath, true); } catch { /* ignore */ }
             }
         }
+    }
+
+    // ── Output root resolution ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the output root directory for a job, giving priority to:
+    /// 1. Per-job OutputPathOverride (user typed on dashboard)
+    /// 2. Per-media path from Settings (MoviesOutputPath / TvOutputPath)
+    /// 3. General OutputPath fallback
+    /// </summary>
+    private string ResolveOutputRoot(RipJob job)
+    {
+        // 1) Dashboard-level override (OutputPathOverride)
+        if (!string.IsNullOrWhiteSpace(job.OutputPathOverride))
+            return job.OutputPathOverride;
+
+        // 2) Per-job manual dialog override
+        if (!string.IsNullOrWhiteSpace(job.OutputRootOverride))
+            return job.OutputRootOverride;
+
+        var s = _settings.Settings;
+        if (job.Metadata?.Type == MediaType.TVShow && !string.IsNullOrWhiteSpace(s.TvOutputPath))
+            return s.TvOutputPath;
+        if (job.Metadata?.Type == MediaType.Movie && !string.IsNullOrWhiteSpace(s.MoviesOutputPath))
+            return s.MoviesOutputPath;
+
+        return s.OutputPath;
     }
 
     // ── FileBot-style output path resolution ───────────────────────────────────
